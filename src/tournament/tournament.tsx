@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Tournament } from '../models/Tournament';
 import "./tournament.css";
+import { Person } from '../models/Person';
+import Players from '../players/players';
 
 function StartTournament() {
     const [title, setTitle] = useState('');
-    const [players, setPlayers] = useState<string[]>(["", ""]);
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
-    const nextId = tournaments.length > 0 ? Math.max(...tournaments.map((tour) => tour.tournamentId)) + 1 : 1;
+    const nextId = tournaments.length > 0 ? Math.max(...tournaments.map((tour) => tour.tournamentId)) + 1 : 5;
+    const [players, setPlayers] = useState<Person[]>([
+        { id: nextId, name: ""},
+        { id: nextId, name: ""},
+    ]);
+    const [tournamentStartDate, setTournamentStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [tournamentEndDate, setTournamentEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const saveTournamentsToLocalStorage = (tournament: Tournament) => {
+        const tournaments = JSON.parse(localStorage.getItem('tournaments') || '[]') as Tournament[];
+        tournaments.push(tournament);
+        localStorage.setItem('tournaments', JSON.stringify(tournaments));
+    }
+
+    const getTournamentsFromLocalStorage = (): Tournament => {
+        return JSON.parse(localStorage.getItem("tournaments") || "[]");
+    }
+
+    const removeTournamentsFromLocalStorage = (id: number) => {
+        const tournaments = JSON.parse(localStorage.getItem('tournaments') || '[]') as Tournament[];
+        const updatedTournaments = tournaments.filter(t => t.tournamentId !== id);
+        localStorage.setItem('tournaments', JSON.stringify(updatedTournaments));
+    }
 
     const handleAddPlayer = () => {
-        setPlayers([...players, ""]);
-    };
+        const newPlayer: Person = {
+            id: players.length + 1,
+            name: ""
+        };
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+        setPlayers([...players, newPlayer]);
+    }; 
 
     const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
@@ -18,7 +49,7 @@ function StartTournament() {
 
     const updatePlayer = (index: number, value: string) => {
         const updatedPlayers = [...players];
-        updatedPlayers[index] = value;
+        updatedPlayers[index].name = value;
         setPlayers(updatedPlayers);
     };
 
@@ -28,10 +59,10 @@ function StartTournament() {
             return;
         }
 
-        const hasBlankInputs = players.some((player) => player.trim() === "") || title.trim() === "";
+        const hasBlankInputs = players.some((player) => player.name.trim() === "") || title.trim() === "";
         if (hasBlankInputs) {
             alert("Input boxes cannot be blank");
-        return;
+            return;
         }
 
         const newTournament: Tournament = {
@@ -43,10 +74,13 @@ function StartTournament() {
             winner: null,
             roundsPlayed: 0,
         }
-        
+        saveTournamentsToLocalStorage(newTournament);
         setTournaments([...tournaments, newTournament]);
-        console.log("tournaments", tournaments);
-        setPlayers(["", ""]);
+        
+        setPlayers([
+            { id: nextId, name: ""},
+            { id: nextId, name: ""},
+        ]);
         setTitle("");
     };
 
@@ -60,6 +94,7 @@ function StartTournament() {
         <div className="tournament-body">
             <h1>Create Tournament</h1>
             <div className="tournament-form">
+                <div className="tournament-bunch">
                 <div className="form-item">
                 <h3 className="form-title">Title</h3>
                 <input
@@ -71,12 +106,33 @@ function StartTournament() {
                 />
                 </div>
                 <div className="form-item">
+                    <h3 className="form-title">Tournament Start Date</h3>
+                    <input
+                        type="date"
+                        value={tournamentStartDate}
+                        onChange={(e) => setTournamentStartDate(e.target.value)}
+                        required
+                    />
+                </div>
+                <div className="form-item">
+                    <h3 className="form-title">Tournament End Date</h3>
+                    <input
+                        type="date"
+                        value={tournamentEndDate}
+                        onChange={(e) => setTournamentEndDate(e.target.value)}
+                        required
+                    />
+                </div>
+                </div>
+                <div className="tournament-bunch">
+                <div className="form-item">
                     <h3 className="form-title">Players</h3>
                     {players.map((player, index) => (
                         <div className="form-item-new-player" key={index}>
                             <input
                                 type="text"
-                                value={player}
+                                value={player.name}
+                                ref={inputRef}
                                 placeholder={`Player ${index + 1}`}
                                 onChange={(e) => updatePlayer(index, e.target.value)}
                                 required
@@ -86,23 +142,20 @@ function StartTournament() {
                     ))}
                     <button onClick={handleAddPlayer}>Add Player</button>
                 </div>
+                </div>
             </div>
             <button className="submit-button" onClick={handleCreate}>Submit</button>
         </div>
         <div className="tournament-created">
-            <h2 className="title">Most Recent Tournament Created</h2>
+            <h2 className="title">Most Recent Tournament</h2>
             {tournaments.map((tournament, index) => (
                 <div key={index} className="tournament">
                     <h3>Title:</h3>
                     <p>{tournament.title}</p>
                     <h4>Players: </h4>
-                    <ul className='player-list'>
-                    {tournament.players.map((player, index) => (
-                        <li className="player" key={index}>{player}</li>
-                    ))}
-                    </ul>
                 </div>
             ))}
+            <Players />
         </div>
         </div>
     )}
