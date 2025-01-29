@@ -1,8 +1,6 @@
 /* Layout: Aligns sections and adds proper spacing */
 .whole-thing {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
     gap: 40px;
     padding: 20px;
 }
@@ -10,16 +8,15 @@
 /* Form Styling */
 .tournament-form {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     border: 2px solid #444;
     border-radius: 10px;
     padding: 25px;
     background-color: #574141;
-    width: 55%;
+    width: 30%;
     min-width: 350px;
     box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.4);
     color: white;
-    gap: 60px;
 }
 
 .tournament-body {

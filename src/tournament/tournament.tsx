@@ -12,8 +12,6 @@ function StartTournament() {
         { id: nextId, name: ""},
         { id: nextId, name: ""},
     ]);
-    const [tournamentStartDate, setTournamentStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
-    const [tournamentEndDate, setTournamentEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const saveTournamentsToLocalStorage = (tournament: Tournament) => {
@@ -69,10 +67,8 @@ function StartTournament() {
             tournamentId: nextId,
             title: title,
             year: new Date().getFullYear(),
-            players: players,
             completed: false,
-            winner: null,
-            roundsPlayed: 0,
+            winner: null
         }
         saveTournamentsToLocalStorage(newTournament);
         setTournaments([...tournaments, newTournament]);
@@ -94,7 +90,6 @@ function StartTournament() {
         <div className="tournament-body">
             <h1>Create Tournament</h1>
             <div className="tournament-form">
-                <div className="tournament-bunch">
                 <div className="form-item">
                 <h3 className="form-title">Title</h3>
                 <input
@@ -105,26 +100,7 @@ function StartTournament() {
                     required
                 />
                 </div>
-                <div className="form-item">
-                    <h3 className="form-title">Tournament Start Date</h3>
-                    <input
-                        type="date"
-                        value={tournamentStartDate}
-                        onChange={(e) => setTournamentStartDate(e.target.value)}
-                        required
-                    />
-                </div>
-                <div className="form-item">
-                    <h3 className="form-title">Tournament End Date</h3>
-                    <input
-                        type="date"
-                        value={tournamentEndDate}
-                        onChange={(e) => setTournamentEndDate(e.target.value)}
-                        required
-                    />
-                </div>
-                </div>
-                <div className="tournament-bunch">
+                
                 <div className="form-item">
                     <h3 className="form-title">Players</h3>
                     {players.map((player, index) => (
@@ -142,19 +118,11 @@ function StartTournament() {
                     ))}
                     <button onClick={handleAddPlayer}>Add Player</button>
                 </div>
-                </div>
             </div>
             <button className="submit-button" onClick={handleCreate}>Submit</button>
         </div>
         <div className="tournament-created">
-            <h2 className="title">Most Recent Tournament</h2>
-            {tournaments.map((tournament, index) => (
-                <div key={index} className="tournament">
-                    <h3>Title:</h3>
-                    <p>{tournament.title}</p>
-                    <h4>Players: </h4>
-                </div>
-            ))}
+            <h2 className="bg-blue-500">Most Recent Tournament</h2>
             <Players />
         </div>
         </div>
