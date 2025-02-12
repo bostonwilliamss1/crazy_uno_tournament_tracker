@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Person } from "../models/Person";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Score = {
   player_id: number;
@@ -52,6 +53,16 @@ const Players = () => {
           );
         })}
       </div>
+      <Card className="w-[350px]">
+        <CardHeader>
+          <CardTitle>Most Recent Tournament</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-1.5">
+            <Players />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

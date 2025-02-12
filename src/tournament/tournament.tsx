@@ -1,8 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Tournament } from "../models/Tournament";
 import "./tournament.css";
 import { Person } from "../models/Person";
-import Players from "../players/players";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,10 +22,17 @@ function StartTournament() {
       ? Math.max(...tournaments.map((tour) => tour.tournamentId)) + 1
       : 5;
   const [players, setPlayers] = useState<Person[]>([
-    { id: nextId, name: "" },
-    { id: nextId, name: "" },
+    { id: 1, name: "", rounds: {} },
+    { id: 2, name: "", rounds: {} },
   ]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (players.length > 0) {
+      titleRef.current?.focus();
+    }
+  }, []);
 
   const saveTournamentsToLocalStorage = (tournament: Tournament) => {
     const tournaments = JSON.parse(
@@ -48,13 +54,16 @@ function StartTournament() {
 
   const handleAddPlayer = () => {
     const newPlayer: Person = {
-      id: players.length + 1,
+      id: players.length ? Math.max(...players.map((p) => p.id)) + 1 : 1,
       name: "",
+      rounds: {},
     };
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
     setPlayers([...players, newPlayer]);
+
+    setTimeout(() => {
+      const lastIndex = players.length;
+      inputRefs.current[lastIndex]?.focus();
+    }, 0);
   };
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,13 +96,14 @@ function StartTournament() {
       year: new Date().getFullYear(),
       completed: false,
       winner: null,
+      people: players,
     };
     saveTournamentsToLocalStorage(newTournament);
     setTournaments([...tournaments, newTournament]);
 
     setPlayers([
-      { id: nextId, name: "" },
-      { id: nextId, name: "" },
+      { id: 1, name: "", rounds: {} },
+      { id: 2, name: "", rounds: {} },
     ]);
     setTitle("");
   };
@@ -104,7 +114,7 @@ function StartTournament() {
   };
 
   return (
-    <div className="flex justify-between p-10">
+    <div className="flex justify-center p-5 gap-100">
       <div className="tournament-body">
         <Card className="w-[350px]">
           <CardHeader>
@@ -120,44 +130,40 @@ function StartTournament() {
                     value={title}
                     onChange={handleTitleChange}
                     placeholder="Crazy Uno Tournament 2025"
-                    required
+                    ref={titleRef}
                   />
                 </div>
                 <div className="flex flex-col space-y-1.5">
                   <Label>Players</Label>
                   {players.map((player, index) => (
-                    <div key={index}>
+                    <div className="flex flex-row" key={index}>
                       <Input
                         type="text"
                         value={player.name}
-                        ref={inputRef}
                         placeholder={`Player ${index + 1}`}
+                        ref={(el) => (inputRefs.current[index] = el!)}
                         onChange={(e) => updatePlayer(index, e.target.value)}
-                        required
                       />
-                      <FaRegTrashCan onClick={() => handleDeletePlayer} />
+                      <FaRegTrashCan
+                        className="m-3"
+                        onClick={() => handleDeletePlayer(index)}
+                      />
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleAddPlayer}>Add Player</Button>
+                <Button type="button" onClick={handleAddPlayer}>
+                  Add Player
+                </Button>
               </div>
             </form>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button onClick={handleCreate}>Submit</Button>
+            <Button type="button" onClick={handleCreate}>
+              Submit
+            </Button>
           </CardFooter>
         </Card>
       </div>
-      <Card className="w-[350px]">
-        <CardHeader>
-          <CardTitle>Most Recent Tournament</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-1.5">
-            <Players />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
