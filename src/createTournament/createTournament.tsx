@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Tournament } from "../models/Tournament";
-import "./tournament.css";
+import "./createTournament.css";
 import { Person } from "../models/Person";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FaRegTrashCan } from "react-icons/fa6";
+import { launchConfetti } from "@/utils/confetti";
+import { useNavigate } from "react-router-dom";
 
-function StartTournament() {
+function CreateTournament() {
   const [title, setTitle] = useState("");
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const nextId =
@@ -22,11 +24,12 @@ function StartTournament() {
       ? Math.max(...tournaments.map((tour) => tour.tournamentId)) + 1
       : 5;
   const [players, setPlayers] = useState<Person[]>([
-    { id: 1, name: "", rounds: {} },
-    { id: 2, name: "", rounds: {} },
+    { id: 8, name: "", rounds: {} },
+    { id: 9, name: "", rounds: {} },
   ]);
   const titleRef = useRef<HTMLInputElement>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (players.length > 0) {
@@ -42,9 +45,9 @@ function StartTournament() {
     localStorage.setItem("tournaments", JSON.stringify(tournaments));
   };
 
-  // const getTournamentsFromLocalStorage = (): Tournament => {
-  //     return JSON.parse(localStorage.getItem("tournaments") || "[]");
-  // }
+  const getTournamentsFromLocalStorage = (): Tournament[] => {
+    return JSON.parse(localStorage.getItem("tournaments") || "[]");
+  };
 
   // const removeTournamentsFromLocalStorage = (id: number) => {
   //     const tournaments = JSON.parse(localStorage.getItem('tournaments') || '[]') as Tournament[];
@@ -100,12 +103,19 @@ function StartTournament() {
     };
     saveTournamentsToLocalStorage(newTournament);
     setTournaments([...tournaments, newTournament]);
-
+    console.log(
+      "get local storage tournament",
+      getTournamentsFromLocalStorage()[
+        getTournamentsFromLocalStorage().length - 1
+      ]
+    );
     setPlayers([
       { id: 1, name: "", rounds: {} },
       { id: 2, name: "", rounds: {} },
     ]);
     setTitle("");
+    launchConfetti();
+    navigate("/", { state: { title, players } });
   };
 
   const handleDeletePlayer = (index: number) => {
@@ -114,8 +124,11 @@ function StartTournament() {
   };
 
   return (
-    <div className="flex justify-center p-5 gap-100">
+    <div className="flex pl-3 gap-5">
       <div className="tournament-body">
+        <h2 className="scroll-m-20 pb-5 text-3xl font-semibold tracking-tight">
+          Create Tournament
+        </h2>
         <Card className="w-[350px]">
           <CardHeader>
             <CardTitle>Create Tournament</CardTitle>
@@ -126,7 +139,7 @@ function StartTournament() {
                 <div className="flex flex-col space-y-1.5">
                   <Label>Title</Label>
                   <Input
-                    id="name"
+                    id="title"
                     value={title}
                     onChange={handleTitleChange}
                     placeholder="Crazy Uno Tournament 2025"
@@ -138,6 +151,7 @@ function StartTournament() {
                   {players.map((player, index) => (
                     <div className="flex flex-row" key={index}>
                       <Input
+                        name="name"
                         type="text"
                         value={player.name}
                         placeholder={`Player ${index + 1}`}
@@ -168,4 +182,4 @@ function StartTournament() {
   );
 }
 
-export default StartTournament;
+export default CreateTournament;

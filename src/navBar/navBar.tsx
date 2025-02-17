@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./navBar.css";
 import {
   NavigationMenu,
@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/navigation-menu";
 
 function Navbar() {
+  const location = useLocation();
+
   return (
     <div className="flex justify-between items-center my-5 pb-5 border-b w-auto">
       {/* Title on the left */}
@@ -16,17 +18,37 @@ function Navbar() {
       </h1>
       <NavigationMenu>
         <NavigationMenuItem className="list-none text-3xl flex space-x-6">
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink
+            asChild
+            className={`${navigationMenuTriggerStyle()} ${
+              location.pathname === "/" ? "active" : ""
+            }`}
+          >
             <Link to="/">Home</Link>
           </NavigationMenuLink>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink
+            asChild
+            className={`${navigationMenuTriggerStyle()} ${
+              location.pathname === "/create-tournament" ? "active" : ""
+            }`}
+          >
             <Link to="/create-tournament">Create Tournament</Link>
           </NavigationMenuLink>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink
+            asChild
+            className={`${navigationMenuTriggerStyle()} ${
+              location.pathname === "/previous-tournaments" ? "active" : ""
+            }`}
+          >
             <Link to="/previous-tournaments">Previous Tournaments</Link>
           </NavigationMenuLink>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/statistics">Tournament Statistics</Link>
+          <NavigationMenuLink
+            asChild
+            className={`${navigationMenuTriggerStyle()} ${
+              location.pathname === "/stats" ? "active" : ""
+            } mr-3 `}
+          >
+            <Link to="/stats">Tournament Statistics</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenu>

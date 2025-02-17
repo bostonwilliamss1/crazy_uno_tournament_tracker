@@ -47,7 +47,6 @@ function PreviousTours() {
         ),
       ].sort((a, b) => a - b)
     : [];
-  const [zerosMap, setZerosMap] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     axios
@@ -90,24 +89,6 @@ function PreviousTours() {
       setFilteredTotals(filtered);
     }
   }, [selectedTournament, totals]);
-
-  useEffect(() => {
-    if (!tournament) return;
-
-    const newZerosMap = new Map<number, number>();
-
-    Object.values(tournament.people).forEach((player) => {
-      let count = 0;
-      allRounds.forEach((round) => {
-        if (player.rounds[round] === 0) {
-          count += 1;
-        }
-      });
-      newZerosMap.set(player.id, count);
-    });
-
-    setZerosMap(newZerosMap);
-  }, [selectedTournament, tournament, allRounds]);
 
   return (
     <div>

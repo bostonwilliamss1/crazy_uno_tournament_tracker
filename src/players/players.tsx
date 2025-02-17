@@ -1,4 +1,5 @@
-// Updated Players.tsx with Tailwind
+// not currently being used anywhere
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Person } from "../models/Person";

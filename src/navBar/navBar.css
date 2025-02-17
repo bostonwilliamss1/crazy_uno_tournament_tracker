@@ -1,0 +1,8 @@
+.active {
+  border: 1px solid black;
+  background-color: lightgrey;
+}
+
+.active:hover {
+  background-color: darkgrey;
+}
