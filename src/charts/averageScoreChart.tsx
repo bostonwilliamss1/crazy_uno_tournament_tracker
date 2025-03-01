@@ -1,3 +1,5 @@
+import { Tournament } from "@/models/Tournament";
+import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   BarElement,
@@ -6,22 +8,28 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Totals } from "@/models/Totals";
-import React from "react";
-import { Bar } from "react-chartjs-2";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 interface Props {
-  scores: Totals[] | undefined;
+  tournament: Tournament | undefined;
 }
 
-const PlayerScoreCharts: React.FC<Props> = ({ scores }) => {
+const AverageScoreChart: React.FC<Props> = ({ tournament }) => {
+  if (!tournament) return;
+
+  const averageScores = Object.values(tournament.people).map((player) => {
+    const scores = Object.values(player.rounds);
+    const totalScore = scores.reduce((a, b) => a + b, 0);
+    const averageScore = totalScore / scores.length;
+    return averageScore;
+  });
+
   const data = {
-    labels: scores?.map((score) => score.player_name),
+    labels: Object.values(tournament.people).map((player) => player.name),
     datasets: [
       {
-        data: scores?.map((score) => score.total_score),
+        data: averageScores,
         backgroundColor: [
           "rgba(0, 72, 255, 0.8)",
           "rgba(0, 179, 0, 0.8)",
@@ -48,8 +56,7 @@ const PlayerScoreCharts: React.FC<Props> = ({ scores }) => {
       },
     },
   };
-
-  return <Bar data={data} options={options} />;
+  return <Bar data={data} options={options}></Bar>;
 };
 
-export default PlayerScoreCharts;
+export default AverageScoreChart;

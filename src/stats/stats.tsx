@@ -11,6 +11,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
 import PlayerScoresChart from "@/charts/playerScoresChart";
+import WinsChart from "@/charts/winsChart";
+import AverageScoreChart from "@/charts/averageScoreChart";
+import { useMemo } from "react";
+import { Person } from "@/models/Person";
 
 type Option = {
   title: string;
@@ -47,10 +51,25 @@ function Stats() {
     ...filteredTotals.sort((a, b) => a.total_score - b.total_score),
   ];
   const location = useLocation();
+  const [aggregatedZerosMap, setAggregatedZerosMap] = useState<
+    Map<number, number>
+  >(new Map());
+  const [players, setPlayers] = useState<Person[]>([]);
 
   useEffect(() => {
     setSelectedTournament("");
   }, [location.pathname]);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/players")
+      .then((response) => {
+        setPlayers(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching players:", error);
+      });
+  }, []);
 
   const nthNumber = (number: number) => {
     if (number > 3 && number < 21) return "th";
@@ -82,7 +101,81 @@ function Stats() {
     });
 
     setZerosMap(newZerosMap);
-  }, [selectedTournament]);
+  }, [tournament]);
+
+  useEffect(() => {
+    if (!tournamentsInformation) return;
+
+    const aggregatedZeros = new Map<number, number>();
+
+    tournamentsInformation.forEach((tournament) => {
+      const rounds = [
+        ...new Set(
+          Object.values(tournament.people)
+            .flatMap((player) => Object.keys(player.rounds))
+            .map(Number)
+        ),
+      ].sort((a, b) => a - b);
+
+      Object.values(tournament.people).forEach((player) => {
+        let count = 0;
+        rounds.forEach((round) => {
+          if (player.rounds[round] === 0) {
+            count++;
+          }
+        });
+        const current = aggregatedZeros.get(player.id) || 0;
+        aggregatedZeros.set(player.id, current + count);
+      });
+    });
+
+    setAggregatedZerosMap(aggregatedZeros);
+  }, [tournamentsInformation]);
+
+  const averageScores = useMemo(() => {
+    if (!tournamentsInformation || tournamentsInformation.length === 0)
+      return new Map<number, number>();
+
+    const averageScoresMap = new Map<number, number>();
+
+    tournamentsInformation.forEach((tournament) => {
+      const rounds = [
+        ...new Set(
+          Object.values(tournament.people)
+            .flatMap((player) => Object.keys(player.rounds))
+            .map(Number)
+        ),
+      ].sort((a, b) => a - b);
+
+      Object.values(tournament.people).forEach((player) => {
+        let totalScore = 0;
+        let totalRounds = 0;
+
+        rounds.forEach((round: number) => {
+          if (player.rounds?.[round] !== undefined) {
+            totalScore += player.rounds[round];
+            totalRounds++;
+          }
+        });
+
+        const prevTotal = averageScoresMap.get(player.id) || 0;
+        const prevRounds = averageScoresMap.get(-player.id) || 0;
+        averageScoresMap.set(player.id, prevTotal + totalScore);
+        averageScoresMap.set(-player.id, prevRounds + totalRounds);
+      });
+    });
+
+    const finalAverages = new Map<number, number>();
+    averageScoresMap.forEach((totalScore, playerId) => {
+      if (playerId > 0) {
+        const totalRounds = averageScoresMap.get(-playerId) || 1;
+        const averageScore = totalScore / totalRounds;
+        const roundedAverage = Number(averageScore.toFixed(2));
+        finalAverages.set(playerId, roundedAverage);
+      }
+    });
+    return finalAverages;
+  }, [tournamentsInformation]);
 
   useEffect(() => {
     axios
@@ -128,11 +221,57 @@ function Stats() {
 
   return (
     <div>
-      <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight mb-3 ml-3">
+      <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight ml-3">
         Statistics
       </h2>
       <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight my-4 ml-3">
-        Selected Tournament: {selectedTournament}
+        All Tournaments Stats:
+      </h3>
+      <div className="flex">
+        <div className="chart-container w-[25%] ml-3 mb-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Overall Wins</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WinsChart scores={totals} />
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="chart-container w-[25%] ml-3 mb-3">
+          <CardHeader>
+            <CardTitle>All Tournaments Zero Count</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.from(aggregatedZerosMap.entries()).map(
+              ([playerId, totalZeros]) => {
+                const playerName =
+                  tournamentsInformation?.find((t) => t.people[playerId])
+                    ?.people[playerId].name || "Unknown";
+                return (
+                  <p className="m-1" key={playerId}>
+                    {playerName}: {totalZeros}
+                  </p>
+                );
+              }
+            )}
+          </CardContent>
+        </Card>
+        <Card className="chart-container w-[25%] ml-3 mb-3">
+          <CardHeader>
+            <CardTitle>Average Scores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.from(averageScores.entries()).map(([playerId, avgScore]) => (
+              <div className="m-1" key={playerId}>
+                {players.find((p) => p.id === playerId)?.name}: {avgScore} pts
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-4 ml-3">
+        {selectedTournament} Tournament Stats:
       </h3>
       <Select onValueChange={(value) => setSelectedTournament(value)}>
         <SelectTrigger className="w-[180px] ml-3">
@@ -156,19 +295,20 @@ function Stats() {
               <p>Select a Tournament to See Statistics</p>
             ) : (
               sortedPlayers.map((player, count) => (
-                <div className="flex">
+                <div key={count} className="flex">
                   <p className="font-bold m-1">
                     {count + 1}
                     {nthNumber(count + 1)}:
                   </p>
-                  <p className="m-1">
-                    {player.player_name} ({player.total_score})
-                  </p>
+                  <p className="m-1">{player.player_name}</p>
                 </div>
               ))
             )}
           </CardContent>
         </Card>
+        <div className="chart-container w-[50%]">
+          <AverageScoreChart tournament={tournament} />
+        </div>
         <Card className="m-3 w-[25%]">
           <CardHeader>
             <CardTitle>Zero Count</CardTitle>
@@ -188,9 +328,9 @@ function Stats() {
             )}
           </CardContent>
         </Card>
-      </div>
-      <div className="chart-container">
-        <PlayerScoresChart scores={totals} />
+        <div className="chart-container w-[50%]">
+          <PlayerScoresChart scores={filteredTotals} />
+        </div>
       </div>
     </div>
   );
