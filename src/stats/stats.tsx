@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
 import PlayerScoresChart from "@/charts/playerScoresChart";
 import WinsChart from "@/charts/winsChart";
-import AverageScoreChart from "@/charts/averageScoreChart";
 import { useMemo } from "react";
 import { Person } from "@/models/Person";
 
@@ -55,21 +54,13 @@ function Stats() {
     Map<number, number>
   >(new Map());
   const [players, setPlayers] = useState<Person[]>([]);
+  const [tournamentAverages, setTournamentAverages] = useState<
+    Map<number, number>
+  >(new Map());
 
   useEffect(() => {
     setSelectedTournament("");
   }, [location.pathname]);
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:5001/api/players")
-      .then((response) => {
-        setPlayers(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching players:", error);
-      });
-  }, []);
 
   const nthNumber = (number: number) => {
     if (number > 3 && number < 21) return "th";
@@ -84,6 +75,54 @@ function Stats() {
         return "th";
     }
   };
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/players")
+      .then((response) => {
+        setPlayers(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching players:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/tournaments")
+      .then((response) => {
+        setOptions(
+          response.data.map((tournament: Tournament) => ({
+            title: tournament.title,
+          }))
+        );
+      })
+      .catch((error) => {
+        console.error("Error fetching tournament titles:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/tournament-players")
+      .then((response) => {
+        setTournamentsInformation(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching tournament players:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/scores/totals")
+      .then((response) => {
+        setTotals(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching totals:", error);
+      });
+  }, []);
 
   useEffect(() => {
     if (!tournament) return;
@@ -104,6 +143,15 @@ function Stats() {
   }, [tournament]);
 
   useEffect(() => {
+    if (tournament && totals) {
+      const filtered = totals.filter((total) => {
+        return total.tournament_id === tournament.tournamentId;
+      });
+      setFilteredTotals(filtered);
+    }
+  }, [selectedTournament, totals]);
+
+  useEffect(() => {
     if (!tournamentsInformation) return;
 
     const aggregatedZeros = new Map<number, number>();
@@ -111,16 +159,16 @@ function Stats() {
     tournamentsInformation.forEach((tournament) => {
       const rounds = [
         ...new Set(
-          Object.values(tournament.people)
-            .flatMap((player) => Object.keys(player.rounds))
+          Object.values(tournament.people || {})
+            .flatMap((player) => Object.keys(player.rounds || {}))
             .map(Number)
         ),
       ].sort((a, b) => a - b);
 
-      Object.values(tournament.people).forEach((player) => {
+      Object.values(tournament.people || {}).forEach((player) => {
         let count = 0;
         rounds.forEach((round) => {
-          if (player.rounds[round] === 0) {
+          if (player.rounds?.[round] === 0) {
             count++;
           }
         });
@@ -178,46 +226,25 @@ function Stats() {
   }, [tournamentsInformation]);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5001/api/totals")
-      .then((response) => {
-        setTotals(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching totals:", error);
-      });
-  }, []);
+    if (!tournament) return;
 
-  useEffect(() => {
-    if (tournament && totals) {
-      const filtered = totals.filter((total) => {
-        return total.tournament_id === tournament.tournamentId;
-      });
-      setFilteredTotals(filtered);
-    }
-  }, [selectedTournament, totals]);
+    const newAverages = new Map<number, number>();
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5001/api/tournaments-titles")
-      .then((response) => {
-        setOptions(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching tournament titles:", error);
-      });
-  }, []);
+    Object.values(tournament.people).forEach((player) => {
+      const scores = Object.values(player.rounds).filter(
+        (score) => score !== undefined
+      );
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5001/api/tournament-players")
-      .then((response) => {
-        setTournamentsInformation(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching tournament players:", error);
-      });
-  }, []);
+      if (scores.length === 0) return;
+
+      const totalScore = scores.reduce((a, b) => a + b, 0);
+      const averageScore = totalScore / scores.length;
+
+      newAverages.set(player.id, Number(averageScore.toFixed(2)));
+    });
+
+    setTournamentAverages(newAverages);
+  }, [tournament]);
 
   return (
     <div>
@@ -306,8 +333,29 @@ function Stats() {
             )}
           </CardContent>
         </Card>
-        <div className="chart-container w-[50%]">
-          <AverageScoreChart tournament={tournament} />
+        <div className="chart-container w-[50%] m-3 w-[25%]">
+          <Card className="chart-container">
+            <CardHeader>
+              <CardTitle>Average Scores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Array.from(tournamentAverages.entries()).map(
+                ([playerId, avgScore]) => {
+                  const player = players.find((p) => p.id === playerId);
+                  if (!player) {
+                    console.warn(`No player found for ID: ${playerId}`);
+                    return null;
+                  }
+
+                  return (
+                    <div className="m-1" key={playerId}>
+                      {player.name}: {avgScore} pts
+                    </div>
+                  );
+                }
+              )}
+            </CardContent>
+          </Card>
         </div>
         <Card className="m-3 w-[25%]">
           <CardHeader>
@@ -328,7 +376,7 @@ function Stats() {
             )}
           </CardContent>
         </Card>
-        <div className="chart-container w-[50%]">
+        <div className="chart-container w-[50%] mr-3">
           <PlayerScoresChart scores={filteredTotals} />
         </div>
       </div>

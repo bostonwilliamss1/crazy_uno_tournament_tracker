@@ -10,10 +10,12 @@ import {
 import { useEffect, useState } from "react";
 import { Tournament } from "@/models/Tournament";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import axios from "axios";
 
 function CurrentTournament() {
   const [rounds, setRounds] = useState<
-    { scores: { [playerId: number]: number } }[]
+    { scores: { [playerId: number]: number | undefined } }[]
   >([]);
   const [currentTournament, setCurrentTournament] = useState<Tournament>();
   const [players, setPlayers] = useState<Person[]>([]);
@@ -58,10 +60,12 @@ function CurrentTournament() {
   }, []);
 
   const addRound = () => {
-    const newRound: { scores: Record<number, number> } = { scores: {} };
+    const newRound: { scores: Record<number, number | undefined> } = {
+      scores: {},
+    };
 
     players.forEach((player) => {
-      newRound.scores[player.id] = 0;
+      newRound.scores[player.id] = undefined;
     });
 
     setRounds([...rounds, newRound]);
@@ -70,19 +74,16 @@ function CurrentTournament() {
   const handleScoreChange = (
     roundIndex: number,
     playerId: number,
-    value: number
+    value: string
   ) => {
     setRounds((prevRounds) => {
       const updatedRounds = [...prevRounds];
-
       if (!updatedRounds[roundIndex]) {
         updatedRounds[roundIndex] = { scores: {} };
       }
-
-      updatedRounds[roundIndex].scores[playerId] = value;
-
+      updatedRounds[roundIndex].scores[playerId] =
+        value === "" ? undefined : Number(value);
       localStorage.setItem("rounds", JSON.stringify(updatedRounds));
-
       return updatedRounds;
     });
   };
@@ -96,6 +97,19 @@ function CurrentTournament() {
       return updatedRounds;
     });
   };
+  console.log("currentTournament", currentTournament);
+  const onCompleteTournament = () => {
+    axios
+      .post("http://localhost:5001/api/tournaments", currentTournament)
+      .then((response) => {
+        console.log(response.data.message);
+        alert("Tournament created successfully!");
+      })
+      .catch((error) => {
+        console.error("Error creating tournament:", error);
+        alert("Failed to create tournament");
+      });
+  };
 
   return (
     <div>
@@ -104,63 +118,73 @@ function CurrentTournament() {
       </h2>
       {currentTournament && (
         <div>
-          <div>
-            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight ml-3 my-3">
+          <div className="w-[85%] max-w-5xl mx-auto flex justify-between items-center px-2 py-3">
+            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
               {capitalizeFirstLetter(currentTournament.title)}
             </h3>
+            <Button
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+              onClick={addRound}
+            >
+              Add Round
+            </Button>
           </div>
-          <Button onClick={addRound}>Add Round</Button>
-          <div className="w-full flex flex-col items-center">
-            <Table className="w-[85%] max-w-5xl border border-gray-300 shadow-lg mx-auto">
+          <div className="w-[85%] max-w-5xl mx-auto flex flex-col items-center">
+            <Table className="w-full border border-gray-300 shadow-lg mx-auto table-auto">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px] text-center">Round</TableHead>
+                  <TableHead className="text-center">Round</TableHead>
                   {players.map((player: Person) => (
-                    <TableHead
-                      key={player.id}
-                      className="w-[100px] text-center"
-                    >
+                    <TableHead key={player.id} className="text-center">
                       {capitalizeFirstLetter(player.name)}
                     </TableHead>
                   ))}
+                  <TableHead className="text-center"></TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rounds.map((round, roundIndex) => (
                   <TableRow key={roundIndex}>
-                    <TableCell className="font-bold">
-                      Round {roundIndex + 1}
+                    <TableCell className="font-bold text-center">
+                      {roundIndex + 1}
                     </TableCell>
                     {players.map((player) => (
-                      <TableCell key={player.id}>
-                        <input
+                      <TableCell key={player.id} className="text-center">
+                        <Input
                           type="number"
-                          value={round.scores[player.id] || ""}
+                          value={
+                            round.scores[player.id] !== undefined
+                              ? String(round.scores[player.id])
+                              : ""
+                          }
                           onChange={(e) =>
                             handleScoreChange(
                               roundIndex,
                               player.id,
-                              Number(e.target.value)
+                              e.target.value
                             )
                           }
-                          className="w-16 text-center border border-gray-300 rounded"
+                          className="w-full text-center border border-gray-300 rounded"
                         />
                       </TableCell>
                     ))}
-                    <TableCell>
-                      <button
+                    <TableCell className="text-center">
+                      <Button
                         onClick={() => removeRound(roundIndex)}
                         className="px-2 py-1 bg-red-500 text-white rounded"
                       >
                         Remove
-                      </button>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableHeader>
-              <TableBody>
                 <TableRow>
                   <TableCell className="font-bold">Totals:</TableCell>
                   {players.map((player) => (
-                    <TableCell key={player.id} className="font-bold">
+                    <TableCell
+                      key={player.id}
+                      className="font-bold text-center"
+                    >
                       {rounds.reduce(
                         (total, round) =>
                           total + (round.scores[player.id] || 0),
@@ -168,9 +192,15 @@ function CurrentTournament() {
                       )}
                     </TableCell>
                   ))}
+                  <TableCell>{/* Empty cell for alignment */}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
+          </div>
+          <div className="w-[85%] max-w-5xl mx-auto flex justify-between items-center py-3">
+            <Button className="px-4 py-2 bg-blue-500 text-white rounded">
+              Complete Tournament
+            </Button>
           </div>
         </div>
       )}

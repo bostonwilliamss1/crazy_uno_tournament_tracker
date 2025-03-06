@@ -23,13 +23,15 @@ const Players = () => {
       .catch((error) => {
         console.error("Error fetching players:", error);
       });
-  }, [players]);
+    console.log("players", players);
+  }, []);
 
   useEffect(() => {
     axios
       .get("http://localhost:5001/api/scores")
       .then((response) => setScores(response.data))
       .catch((error) => console.error("Error fetching scores:", error));
+    console.log("scores", scores);
   }, [scores]);
 
   return (

@@ -32,15 +32,23 @@ function CreateTournament() {
   const [existingPlayers, setExistingPlayers] = useState<Person[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<string>("default");
   const [playerName, setPlayerName] = useState<string>("");
-  const [nextId, setNextId] = useState(0);
+  const [nextPlayerId, setNextPlayerId] = useState(0);
+  const [nextTournamentId, setNextTournamentId] = useState(0);
 
   useEffect(() => {
     if (players.length > 0) {
       titleRef.current?.focus();
     }
-    setNextId(
+    setNextPlayerId(
       existingPlayers.length > 0
         ? Math.max(...existingPlayers.map((player) => player.id)) + 1
+        : 0
+    );
+    setNextTournamentId(
+      tournaments.length > 0
+        ? Math.max(
+            ...tournaments.map((tournament) => tournament.tournamentId)
+          ) + 1
         : 0
     );
   }, []);
@@ -93,12 +101,13 @@ function CreateTournament() {
     }
 
     const newTournament: Tournament = {
-      tournamentId: nextId,
+      tournamentId: nextTournamentId,
       title: title,
       year: new Date().getFullYear(),
       completed: false,
       winner: null,
       people: players,
+      round_count: 0,
     };
     saveTournamentsToLocalStorage(newTournament);
     setTournaments([...tournaments, newTournament]);
@@ -123,7 +132,7 @@ function CreateTournament() {
   const createPlayer = (playerName: string) => {
     setPlayers((players) => [
       ...players,
-      { id: nextId, name: playerName, rounds: {} },
+      { id: nextPlayerId, name: playerName, rounds: {} },
     ]);
     setPlayerName("");
   };

@@ -1,3 +1,4 @@
+import { Tournament } from "@/models/Tournament";
 import axios from "axios";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import React, { useEffect, useState } from "react";
@@ -16,12 +17,8 @@ interface Props {
   scores: Totals[] | undefined;
 }
 
-type Option = {
-  title: string;
-};
-
 const WinsChart: React.FC<Props> = ({ scores = [] }) => {
-  const [tournaments, setTournaments] = useState<Option[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   if (!scores) return;
   const wins: Map<string, number> = new Map();
   tournaments.forEach((_, i) => {
@@ -71,7 +68,7 @@ const WinsChart: React.FC<Props> = ({ scores = [] }) => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/tournaments-titles")
+      .get("http://localhost:5001/api/tournaments")
       .then((response) => {
         setTournaments(response.data);
       })
