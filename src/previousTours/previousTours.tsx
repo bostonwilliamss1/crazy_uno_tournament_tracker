@@ -82,84 +82,121 @@ function PreviousTours() {
     : [];
 
   return (
-    <div>
-      <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight mb-3 ml-3">
+    <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
+      {/* Title */}
+      <h2 className="text-3xl font-semibold tracking-tight mb-6">
         Previous Tournaments
       </h2>
-      <Select
-        onValueChange={(value) => {
-          const selectedTournamentData = tournamentsInformation.find(
-            (opt) => opt.title === value
-          );
-          setSelectedTournament(selectedTournamentData || null);
-        }}
-      >
-        <SelectTrigger className="w-[180px] ml-3">
-          <SelectValue placeholder="Select Tournament" />
-        </SelectTrigger>
-        <SelectContent>
-          {tournamentsInformation.map((tournament: Tournament, i) => (
-            <SelectItem key={i} value={tournament.title}>
-              {tournament.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight my-4 ml-3">
-        Selected Tournament: {selectedTournament?.title || "None"}
+
+      {/* Tournament Selector */}
+      <div className="bg-white shadow-lg rounded-lg p-6 max-w-lg w-full">
+        <h3 className="text-xl font-semibold mb-4">Select a Tournament</h3>
+        <Select
+          onValueChange={(value) => {
+            const selectedTournamentData = tournamentsInformation.find(
+              (opt) => opt.title === value
+            );
+            setSelectedTournament(selectedTournamentData || null);
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Tournament" />
+          </SelectTrigger>
+          <SelectContent>
+            {tournamentsInformation.map((tournament: Tournament, i) => (
+              <SelectItem key={i} value={tournament.title}>
+                {tournament.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Selected Tournament Display */}
+      <h3 className="text-2xl font-semibold tracking-tight my-6">
+        {selectedTournament
+          ? `Tournament: ${selectedTournament.title}`
+          : "No Tournament Selected"}
       </h3>
-      {tournament && (
+
+      {selectedTournament && (
         <div className="w-full flex flex-col items-center">
-          <Table className="w-[85%] max-w-5xl border border-gray-300 shadow-lg mx-auto">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px] text-center">Round</TableHead>
-                {Object.values(tournament.people).map((player: any) => (
-                  <TableHead key={player.id} className="w-[100px] text-center">
-                    {player.name}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allRounds.map((round) => (
-                <TableRow key={round}>
-                  <TableCell className="text-center">{round}</TableCell>
-                  {Object.values(tournament.people).map((player: any) => (
-                    <TableCell key={player.id} className="text-center">
-                      {player.rounds && player.rounds[round] !== undefined ? (
-                        player.rounds[round] === 0 ? (
-                          <div className="bg-yellow-200">
-                            {player.rounds[round]}
-                          </div>
-                        ) : (
-                          <div>{player.rounds[round]}</div>
+          {/* Tournament Table */}
+          <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
+            <h3 className="text-xl font-semibold mb-4">Tournament Scores</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 shadow-lg bg-white">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="border border-gray-300 p-3 text-center">
+                      Round
+                    </th>
+                    {Object.values(selectedTournament.people).map(
+                      (player: any) => (
+                        <th
+                          key={player.id}
+                          className="border border-gray-300 p-3 text-center"
+                        >
+                          {player.name}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allRounds.map((round) => (
+                    <tr key={round} className="hover:bg-gray-100">
+                      <td className="border border-gray-300 p-3 text-center font-semibold">
+                        {round}
+                      </td>
+                      {Object.values(selectedTournament.people).map(
+                        (player: any) => (
+                          <td
+                            key={player.id}
+                            className="border border-gray-300 p-3 text-center"
+                          >
+                            {player.rounds &&
+                            player.rounds[round] !== undefined ? (
+                              player.rounds[round] === 0 ? (
+                                <div className="bg-yellow-200 p-1 rounded">
+                                  {player.rounds[round]}
+                                </div>
+                              ) : (
+                                <div>{player.rounds[round]}</div>
+                              )
+                            ) : (
+                              "-"
+                            )}
+                          </td>
                         )
-                      ) : (
-                        "-"
                       )}
-                    </TableCell>
+                    </tr>
                   ))}
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell className="font-bold">Totals:</TableCell>
-                {Object.values(tournament.people).map((player: any) => {
-                  const playerTotal = filteredTotals.find(
-                    (total) => total.player_id === player.id
-                  );
-                  return (
-                    <TableCell
-                      key={player.id}
-                      className="text-center font-bold"
-                    >
-                      {playerTotal ? playerTotal.total_score : 0}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            </TableBody>
-          </Table>
+                  {/* Totals Row */}
+                  <tr className="bg-gray-100 font-semibold">
+                    <td className="border border-gray-300 p-3 text-center">
+                      Totals:
+                    </td>
+                    {Object.values(selectedTournament.people).map(
+                      (player: any) => {
+                        const playerTotal = filteredTotals.find(
+                          (total) => total.player_id === player.id
+                        );
+                        return (
+                          <td
+                            key={player.id}
+                            className="border border-gray-300 p-3 text-center font-bold"
+                          >
+                            {playerTotal ? playerTotal.total_score : 0}
+                          </td>
+                        );
+                      }
+                    )}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

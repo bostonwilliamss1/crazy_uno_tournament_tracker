@@ -138,102 +138,131 @@ function CreateTournament() {
   };
 
   return (
-    <div className="flex pl-3 gap-5">
-      <div className="tournament-body">
-        <h2 className="scroll-m-20 pb-5 text-3xl font-semibold tracking-tight">
-          Create Tournament
-        </h2>
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>Create Tournament</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form>
-              <div className="grid w-full items-center gap-4">
-                <div className="flex flex-col space-y-1.5">
-                  <Label>Title</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={handleTitleChange}
-                    placeholder="Crazy Uno Tournament 2025"
-                    ref={titleRef}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <Label>Returning Players</Label>
-                  <Select
-                    value={selectedPlayer || "default"}
-                    onValueChange={(value) => {
-                      if (value !== "default") {
-                        setSelectedPlayer(value);
-                        handleAddPlayer(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-[180px] mt-2">
-                      <SelectValue placeholder="Select a Player" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default" disabled>
-                        Select a Player
-                      </SelectItem>
-                      {existingPlayers.map((player, index) => (
-                        <SelectItem key={index} value={player.name}>
-                          {player.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col space-y-1.5">
-                  <Label>Add a New Player</Label>
-                  <div className="flex flex-row">
-                    <Input
-                      name="name"
-                      type="text"
-                      placeholder="Create Player"
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      value={playerName}
-                    />
-                    <Button
-                      type="button"
-                      className="ml-2"
-                      onClick={() => createPlayer(playerName)}
-                    >
-                      Add Player
-                    </Button>
-                  </div>
-                </div>
+    <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
+      {/* Title */}
+      <h2 className="text-3xl font-semibold tracking-tight mb-6">
+        Create Tournament
+      </h2>
+
+      {/* Tournament Form Card */}
+      <Card className="w-full max-w-lg bg-white shadow-lg rounded-lg p-6">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">
+            Create Tournament
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-6">
+            {/* Tournament Title */}
+            <div>
+              <Label className="text-gray-700 font-medium">
+                Tournament Title
+              </Label>
+              <Input
+                id="title"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300"
+                value={title}
+                onChange={handleTitleChange}
+                placeholder="Crazy Uno Tournament 2025"
+                ref={titleRef}
+              />
+            </div>
+
+            {/* Returning Players Dropdown */}
+            <div>
+              <Label className="text-gray-700 font-medium">
+                Returning Players
+              </Label>
+              <Select
+                value={selectedPlayer || "default"}
+                onValueChange={(value) => {
+                  if (value !== "default") {
+                    setSelectedPlayer(value);
+                    handleAddPlayer(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full mt-2">
+                  <SelectValue placeholder="Select a Player" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default" disabled>
+                    Select a Player
+                  </SelectItem>
+                  {existingPlayers.map((player, index) => (
+                    <SelectItem key={index} value={player.name}>
+                      {player.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Add New Player */}
+            <div>
+              <Label className="text-gray-700 font-medium">
+                Add a New Player
+              </Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  name="name"
+                  type="text"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg"
+                  placeholder="Enter Player Name"
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  value={playerName}
+                />
+                <Button
+                  type="button"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                  onClick={() => createPlayer(playerName)}
+                >
+                  Add
+                </Button>
               </div>
-              {/* Player List */}
-              <div className="flex flex-col my-3">
-                <Label className="my-1 text-lg">Player List</Label>
-                {players.map((player, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border-b border-gray-300 py-2"
-                  >
-                    <p className="text-sm font-medium">{player.name}</p>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={(event) => handleDeletePlayer(index, event)}
+            </div>
+
+            {/* Player List */}
+            <div className="border-t border-gray-300 pt-4">
+              <Label className="text-lg font-semibold text-gray-700">
+                Player List
+              </Label>
+              <div className="mt-2 max-h-48 overflow-y-auto">
+                {players.length === 0 ? (
+                  <p className="text-sm text-gray-500">No players added yet.</p>
+                ) : (
+                  players.map((player, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between border-b border-gray-300 py-2"
                     >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
+                      <p className="text-sm font-medium">{player.name}</p>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={(event) => handleDeletePlayer(index, event)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button type="button" onClick={handleCreate}>
-              Submit
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+            </div>
+          </form>
+        </CardContent>
+
+        {/* Submit Button */}
+        <CardFooter className="flex justify-center">
+          <Button
+            type="button"
+            className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition"
+            onClick={handleCreate}
+          >
+            Start Tournament
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

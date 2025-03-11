@@ -14,6 +14,7 @@ import PlayerScoresChart from "@/charts/playerScoresChart";
 import WinsChart from "@/charts/winsChart";
 import { useMemo } from "react";
 import { Person } from "@/models/Person";
+import PlayerStats from "@/playerStats/PlayerStats";
 
 type Option = {
   title: string;
@@ -247,25 +248,27 @@ function Stats() {
   }, [tournament]);
 
   return (
-    <div>
-      <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight ml-3">
-        Statistics
-      </h2>
-      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight my-4 ml-3">
-        All Tournaments Stats:
+    <div className="p-6 bg-gray-100 min-h-screen">
+      {/* Header */}
+      <h2 className="text-3xl font-semibold tracking-tight ml-3">Statistics</h2>
+      <h3 className="text-2xl font-semibold tracking-tight my-4 ml-3">
+        All Tournaments Statistics:
       </h3>
-      <div className="flex">
-        <div className="chart-container w-[25%] ml-3 mb-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Overall Wins</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <WinsChart scores={totals} />
-            </CardContent>
-          </Card>
+
+      {/* Main Statistics Section */}
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
+        {/* Wins Chart */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
+          <CardHeader>
+            <CardTitle>Overall Wins</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WinsChart scores={totals} />
+          </CardContent>
         </div>
-        <Card className="chart-container w-[25%] ml-3 mb-3">
+
+        {/* All Tournaments Zero Count */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>All Tournaments Zero Count</CardTitle>
           </CardHeader>
@@ -276,109 +279,137 @@ function Stats() {
                   tournamentsInformation?.find((t) => t.people[playerId])
                     ?.people[playerId].name || "Unknown";
                 return (
-                  <p className="m-1" key={playerId}>
-                    {playerName}: {totalZeros}
+                  <p className="text-gray-700 text-sm my-1" key={playerId}>
+                    {playerName}:{" "}
+                    <span className="font-semibold">{totalZeros}</span>
                   </p>
                 );
               }
             )}
           </CardContent>
-        </Card>
-        <Card className="chart-container w-[25%] ml-3 mb-3">
+        </div>
+
+        {/* Average Scores */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>Average Scores</CardTitle>
           </CardHeader>
           <CardContent>
             {Array.from(averageScores.entries()).map(([playerId, avgScore]) => (
-              <div className="m-1" key={playerId}>
-                {players.find((p) => p.id === playerId)?.name}: {avgScore} pts
-              </div>
+              <p className="text-gray-700 text-sm my-1" key={playerId}>
+                {players.find((p) => p.id === playerId)?.name}:{" "}
+                <span className="font-semibold">{avgScore} pts</span>
+              </p>
             ))}
           </CardContent>
-        </Card>
+        </div>
       </div>
-      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-4 ml-3">
-        {selectedTournament} Tournament Stats:
+
+      {/* Tournament Selector */}
+      <h3 className="text-2xl font-semibold tracking-tight mb-4 ml-3">
+        {selectedTournament} Tournament Statistics:
       </h3>
-      <Select onValueChange={(value) => setSelectedTournament(value)}>
-        <SelectTrigger className="w-[180px] ml-3">
-          <SelectValue placeholder="Select Tournament" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option, index) => (
-            <SelectItem className="ml-3" key={index} value={option.title}>
-              {option.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="flex">
-        <Card className="m-3 w-[25%]">
+      <div className="ml-3">
+        <Select onValueChange={(value) => setSelectedTournament(value)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select Tournament" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option, index) => (
+              <SelectItem key={index} value={option.title}>
+                {option.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tournament Statistics Grid */}
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6 mt-6">
+        {/* Final Rankings */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>Final Rankings</CardTitle>
           </CardHeader>
           <CardContent>
             {!selectedTournament ? (
-              <p>Select a Tournament to See Statistics</p>
+              <p className="text-gray-600">
+                Select a Tournament to See Statistics
+              </p>
             ) : (
               sortedPlayers.map((player, count) => (
-                <div key={count} className="flex">
-                  <p className="font-bold m-1">
+                <div key={count} className="flex text-gray-700 text-sm my-1">
+                  <p className="font-bold mr-2">
                     {count + 1}
                     {nthNumber(count + 1)}:
                   </p>
-                  <p className="m-1">{player.player_name}</p>
+                  <p>{player.player_name}</p>
                 </div>
               ))
             )}
           </CardContent>
-        </Card>
-        <div className="chart-container w-[50%] m-3 w-[25%]">
-          <Card className="chart-container">
-            <CardHeader>
-              <CardTitle>Average Scores</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {Array.from(tournamentAverages.entries()).map(
-                ([playerId, avgScore]) => {
-                  const player = players.find((p) => p.id === playerId);
-                  if (!player) {
-                    console.warn(`No player found for ID: ${playerId}`);
-                    return null;
-                  }
-
-                  return (
-                    <div className="m-1" key={playerId}>
-                      {player.name}: {avgScore} pts
-                    </div>
-                  );
-                }
-              )}
-            </CardContent>
-          </Card>
         </div>
-        <Card className="m-3 w-[25%]">
+
+        {/* Average Scores per Tournament */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
+          <CardHeader>
+            <CardTitle>Average Scores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.from(tournamentAverages.entries()).map(
+              ([playerId, avgScore]) => {
+                const player = players.find((p) => p.id === playerId);
+                if (!player) {
+                  console.warn(`No player found for ID: ${playerId}`);
+                  return null;
+                }
+                return (
+                  <p className="text-gray-700 text-sm my-1" key={playerId}>
+                    {player.name}:{" "}
+                    <span className="font-semibold">{avgScore} pts</span>
+                  </p>
+                );
+              }
+            )}
+          </CardContent>
+        </div>
+
+        {/* Zero Count */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>Zero Count</CardTitle>
           </CardHeader>
           <CardContent>
             {!selectedTournament || zerosMap.size === 0 ? (
-              <p>Select a Tournament to See Statistics</p>
+              <p className="text-gray-600">
+                Select a Tournament to See Statistics
+              </p>
             ) : (
               Array.from(zerosMap.entries()).map(([playerId, zeroCount]) => {
                 const playerName = tournament?.people[playerId]?.name;
                 return (
-                  <p className="m-1" key={playerId}>
-                    {playerName}: {zeroCount}
+                  <p className="text-gray-700 text-sm my-1" key={playerId}>
+                    {playerName}:{" "}
+                    <span className="font-semibold">{zeroCount}</span>
                   </p>
                 );
               })
             )}
           </CardContent>
-        </Card>
-        <div className="chart-container w-[50%] mr-3">
-          <PlayerScoresChart scores={filteredTotals} />
         </div>
+      </div>
+
+      {/* Player Scores Chart */}
+      <div className="bg-white shadow-lg rounded-lg p-4 mt-6">
+        <PlayerScoresChart scores={filteredTotals} />
+      </div>
+
+      {/* Player Statistics */}
+      <h3 className="text-2xl font-semibold tracking-tight mt-6 ml-3">
+        Player Statistics:
+      </h3>
+      <div className="bg-white shadow-lg rounded-lg p-4 mt-3">
+        <PlayerStats />
       </div>
     </div>
   );

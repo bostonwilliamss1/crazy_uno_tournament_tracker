@@ -97,61 +97,112 @@ function CurrentTournament() {
       return updatedRounds;
     });
   };
-  console.log("currentTournament", currentTournament);
+
   const onCompleteTournament = () => {
-    axios
-      .post("http://localhost:5001/api/tournaments", currentTournament)
-      .then((response) => {
-        console.log(response.data.message);
-        alert("Tournament created successfully!");
-      })
-      .catch((error) => {
-        console.error("Error creating tournament:", error);
-        alert("Failed to create tournament");
-      });
+    if (!currentTournament) {
+      alert("No active tournament found.");
+      return;
+    }
+
+    const formattedTournament = {
+      tournamentId: currentTournament?.tournamentId || 0,
+      title: currentTournament?.title || "Untitled Tournament",
+      year: currentTournament?.year || new Date().getFullYear(),
+      completed: true,
+
+      people: players.reduce<{
+        [key: number]: {
+          name: string;
+          id: number;
+          rounds: { [round: number]: number };
+        };
+      }>((acc, player) => {
+        acc[player.id] = {
+          name: player.name,
+          id: player.id,
+
+          rounds: rounds.reduce<{ [round: number]: number }>(
+            (roundAcc, round, roundIndex) => {
+              roundAcc[roundIndex + 1] = round.scores[player.id] ?? 0;
+              return roundAcc;
+            },
+            {}
+          ),
+        };
+        return acc;
+      }, {}),
+    };
+
+    console.log("Formatted Tournament for Database:", formattedTournament);
+
+    // axios
+    //   .post("http://localhost:5001/api/tournaments", updatedTournament)
+    //   .then((response) => {
+    //     console.log(response.data.message);
+    //     alert("Tournament saved successfully!");
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error saving tournament:", error);
+    //     alert("Failed to save tournament");
+    //   });
   };
 
   return (
-    <div>
-      <h2 className="scroll-m-20 text-3xl font-semibold tracking-tight ml-3">
-        Home Page
-      </h2>
+    <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
+      {/* Page Title */}
+      <h2 className="text-3xl font-semibold tracking-tight mb-6">Home Page</h2>
+
       {currentTournament && (
-        <div>
-          <div className="w-[85%] max-w-5xl mx-auto flex justify-between items-center px-2 py-3">
-            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
+          {/* Tournament Title & Add Round Button */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-2xl font-semibold">
               {capitalizeFirstLetter(currentTournament.title)}
             </h3>
             <Button
-              className="px-4 py-2 bg-blue-500 text-white rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
               onClick={addRound}
             >
-              Add Round
+              + Add Round
             </Button>
           </div>
-          <div className="w-[85%] max-w-5xl mx-auto flex flex-col items-center">
-            <Table className="w-full border border-gray-300 shadow-lg mx-auto table-auto">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-center">Round</TableHead>
+
+          {/* Scores Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-300 shadow-lg bg-white">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border border-gray-300 p-3 text-center">
+                    Round
+                  </th>
                   {players.map((player: Person) => (
-                    <TableHead key={player.id} className="text-center">
+                    <th
+                      key={player.id}
+                      className="border border-gray-300 p-3 text-center"
+                    >
                       {capitalizeFirstLetter(player.name)}
-                    </TableHead>
+                    </th>
                   ))}
-                  <TableHead className="text-center"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                  <th className="border border-gray-300 p-3 text-center">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {rounds.map((round, roundIndex) => (
-                  <TableRow key={roundIndex}>
-                    <TableCell className="font-bold text-center">
+                  <tr key={roundIndex} className="hover:bg-gray-100">
+                    <td className="border border-gray-300 p-3 text-center font-semibold">
                       {roundIndex + 1}
-                    </TableCell>
+                    </td>
                     {players.map((player) => (
-                      <TableCell key={player.id} className="text-center">
+                      <td
+                        key={player.id}
+                        className="border border-gray-300 p-3 text-center"
+                      >
                         <Input
                           type="number"
+                          id={`round-${roundIndex}-player-${player.id}`}
+                          name={`round[${roundIndex}][${player.id}]`}
                           value={
                             round.scores[player.id] !== undefined
                               ? String(round.scores[player.id])
@@ -164,41 +215,49 @@ function CurrentTournament() {
                               e.target.value
                             )
                           }
-                          className="w-full text-center border border-gray-300 rounded"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-center"
                         />
-                      </TableCell>
+                      </td>
                     ))}
-                    <TableCell className="text-center">
+                    <td className="border border-gray-300 p-3 text-center">
                       <Button
                         onClick={() => removeRound(roundIndex)}
-                        className="px-2 py-1 bg-red-500 text-white rounded"
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition"
                       >
                         Remove
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-                <TableRow>
-                  <TableCell className="font-bold">Totals:</TableCell>
+                {/* Totals Row */}
+                <tr className="bg-gray-100 font-semibold">
+                  <td className="border border-gray-300 p-3 text-center">
+                    Totals:
+                  </td>
                   {players.map((player) => (
-                    <TableCell
+                    <td
                       key={player.id}
-                      className="font-bold text-center"
+                      className="border border-gray-300 p-3 text-center"
                     >
                       {rounds.reduce(
                         (total, round) =>
                           total + (round.scores[player.id] || 0),
                         0
                       )}
-                    </TableCell>
+                    </td>
                   ))}
-                  <TableCell>{/* Empty cell for alignment */}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                  <td className="border border-gray-300 p-3 text-center"></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div className="w-[85%] max-w-5xl mx-auto flex justify-between items-center py-3">
-            <Button className="px-4 py-2 bg-blue-500 text-white rounded">
+
+          {/* Complete Tournament Button */}
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={onCompleteTournament}
+              className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition"
+            >
               Complete Tournament
             </Button>
           </div>
