@@ -44,12 +44,12 @@ function PlayerStats() {
     <div className="chart-container w-[25%] m-3 w-[25%]">
       <Card className="chart-container">
         <CardHeader>
-          <CardTitle>Highest Score</CardTitle>
+          <CardTitle>Players Highest Scores</CardTitle>
         </CardHeader>
         <CardContent>
           {Array.from(maxScores.entries()).map(([playerName, maxScore]) => (
-            <div key={playerName}>
-              {playerName}: {maxScore}
+            <div className="text-gray-700 text-sm my-1" key={playerName}>
+              {playerName}: <span className="font-bold">{maxScore}</span>
             </div>
           ))}
         </CardContent>

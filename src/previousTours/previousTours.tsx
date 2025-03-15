@@ -8,14 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import MyDocument from "@/pdfexport/pdfexport";
 
 type Totals = {
   player_name: string;
@@ -121,6 +114,11 @@ function PreviousTours() {
 
       {selectedTournament && (
         <div className="w-full flex flex-col items-center">
+          {selectedTournament && (
+            <div className="mt-6">
+              <MyDocument tournament={selectedTournament} />
+            </div>
+          )}
           {/* Tournament Table */}
           <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
             <h3 className="text-xl font-semibold mb-4">Tournament Scores</h3>
@@ -172,7 +170,6 @@ function PreviousTours() {
                       )}
                     </tr>
                   ))}
-                  {/* Totals Row */}
                   <tr className="bg-gray-100 font-semibold">
                     <td className="border border-gray-300 p-3 text-center">
                       Totals:

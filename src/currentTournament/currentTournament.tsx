@@ -1,17 +1,12 @@
 import { Person } from "../models/Person";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { Tournament } from "@/models/Tournament";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
+import { MdEdit } from "react-icons/md";
+import { FaMinus } from "react-icons/fa";
+import "./currentTournament.css";
 
 function CurrentTournament() {
   const [rounds, setRounds] = useState<
@@ -19,10 +14,29 @@ function CurrentTournament() {
   >([]);
   const [currentTournament, setCurrentTournament] = useState<Tournament>();
   const [players, setPlayers] = useState<Person[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [existingPlayers, setExistingPlayers] = useState<Person[]>([]);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tournamentTitle, setTournamentTitle] = useState(
+    capitalizeFirstLetter(currentTournament?.title || "Untitled Tournament")
+  );
+  const [tempPlayerName, setTempPlayerName] = useState("");
+  const [addingPlayer, setAddingPlayer] = useState(false);
 
   function capitalizeFirstLetter(val: string) {
     return String(val).charAt(0).toUpperCase() + String(val).slice(1);
   }
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/players")
+      .then((response) => {
+        setExistingPlayers(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching players:", error);
+      });
+  }, []);
 
   useEffect(() => {
     const savedTournaments = JSON.parse(
@@ -31,8 +45,18 @@ function CurrentTournament() {
     if (savedTournaments.length > 0) {
       const latestTournament: Tournament =
         savedTournaments[savedTournaments.length - 1];
+
+      const savedNicknames = JSON.parse(
+        localStorage.getItem("playerNicknames") || "{}"
+      );
+
+      const updatedPlayers = latestTournament.people.map((player) => ({
+        ...player,
+        nickname: savedNicknames[player.id] || "",
+      }));
+
       setCurrentTournament(latestTournament);
-      setPlayers(latestTournament.people || []);
+      setPlayers(updatedPlayers);
     }
 
     const savedRounds = JSON.parse(localStorage.getItem("rounds") || "[]");
@@ -48,16 +72,20 @@ function CurrentTournament() {
   }, [rounds]);
 
   useEffect(() => {
-    const savedTournaments = JSON.parse(
-      localStorage.getItem("tournaments") || "[]"
-    );
-    if (savedTournaments.length > 0) {
-      const latestTournament: Tournament =
-        savedTournaments[savedTournaments.length - 1];
-      setCurrentTournament(latestTournament);
-      setPlayers(latestTournament.people || []);
+    const savedPlayers = JSON.parse(localStorage.getItem("players") || "[]");
+    if (savedPlayers.length > 0) {
+      setPlayers(savedPlayers);
     }
   }, []);
+
+  useEffect(() => {
+    const savedTitle = localStorage.getItem("tournamentTitle");
+    if (savedTitle) {
+      setTournamentTitle(savedTitle);
+    } else if (currentTournament?.title) {
+      setTournamentTitle(capitalizeFirstLetter(currentTournament.title));
+    }
+  }, [currentTournament]);
 
   const addRound = () => {
     const newRound: { scores: Record<number, number | undefined> } = {
@@ -69,6 +97,98 @@ function CurrentTournament() {
     });
 
     setRounds([...rounds, newRound]);
+  };
+
+  const handlePlayerNameChange = (playerId: number, newName: string) => {
+    const updatedPlayers = players.map((player) =>
+      player.id === playerId ? { ...player, name: newName } : player
+    );
+
+    setPlayers(updatedPlayers);
+
+    const trimmedName = newName.trim();
+    if (trimmedName === "") return;
+
+    const existingPlayer = existingPlayers.find(
+      (p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    const finalPlayers = players.map((player) =>
+      player.id === playerId
+        ? existingPlayer || { ...player, name: trimmedName }
+        : player
+    );
+
+    setPlayers(finalPlayers);
+    localStorage.setItem("players", JSON.stringify(finalPlayers));
+
+    if (!existingPlayer) {
+      const newExistingPlayers = [
+        ...existingPlayers,
+        { id: playerId, name: trimmedName, nickname: "", rounds: {} },
+      ];
+      setExistingPlayers(newExistingPlayers);
+      localStorage.setItem(
+        "existingPlayers",
+        JSON.stringify(newExistingPlayers)
+      );
+    }
+  };
+
+  const handleAddNewPlayer = () => {
+    setAddingPlayer(true); // Show the input field for new player
+  };
+
+  const handleSaveNewPlayer = () => {
+    if (!tempPlayerName.trim()) return; // Prevent empty names
+
+    const trimmedName = tempPlayerName.trim().toLowerCase();
+    const isDuplicate = players.some(
+      (p) => p.name.trim().toLowerCase() === trimmedName
+    );
+
+    if (isDuplicate) {
+      alert("This player is already added to the tournament.");
+      setTempPlayerName(""); // Reset input
+      setAddingPlayer(false); // Hide input field
+      return;
+    }
+
+    // Check if player exists in existingPlayers list
+    const existingPlayer = existingPlayers.find(
+      (p) => p.name.trim().toLowerCase() === trimmedName
+    );
+
+    let updatedPlayers;
+    if (existingPlayer) {
+      updatedPlayers = [...players, existingPlayer];
+    } else {
+      const newPlayer: Person = {
+        id: players.length > 0 ? Math.max(...players.map((p) => p.id)) + 1 : 1,
+        name: tempPlayerName.trim(),
+        nickname: "",
+        rounds: {},
+      };
+
+      updatedPlayers = [...players, newPlayer];
+      setExistingPlayers([...existingPlayers, newPlayer]);
+      localStorage.setItem(
+        "existingPlayers",
+        JSON.stringify([...existingPlayers, newPlayer])
+      );
+    }
+
+    setPlayers(updatedPlayers);
+    localStorage.setItem("players", JSON.stringify(updatedPlayers));
+
+    setTempPlayerName(""); // Reset input
+    setAddingPlayer(false); // Hide input field
+  };
+
+  const handleRemovePlayer = (id: number) => {
+    const updatedPlayers = players.filter((player) => player.id !== id);
+    setPlayers(updatedPlayers);
+    localStorage.setItem("players", JSON.stringify(updatedPlayers));
   };
 
   const handleScoreChange = (
@@ -120,7 +240,6 @@ function CurrentTournament() {
         acc[player.id] = {
           name: player.name,
           id: player.id,
-
           rounds: rounds.reduce<{ [round: number]: number }>(
             (roundAcc, round, roundIndex) => {
               roundAcc[roundIndex + 1] = round.scores[player.id] ?? 0;
@@ -132,33 +251,43 @@ function CurrentTournament() {
         return acc;
       }, {}),
     };
+    console.log("formated tournament", formattedTournament);
+  };
 
-    console.log("Formatted Tournament for Database:", formattedTournament);
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTournamentTitle(e.target.value);
+  };
 
-    // axios
-    //   .post("http://localhost:5001/api/tournaments", updatedTournament)
-    //   .then((response) => {
-    //     console.log(response.data.message);
-    //     alert("Tournament saved successfully!");
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error saving tournament:", error);
-    //     alert("Failed to save tournament");
-    //   });
+  const saveTitle = () => {
+    setIsEditingTitle(false);
+    localStorage.setItem("tournamentTitle", tournamentTitle);
   };
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
-      {/* Page Title */}
       <h2 className="text-3xl font-semibold tracking-tight mb-6">Home Page</h2>
 
       {currentTournament && (
         <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
-          {/* Tournament Title & Add Round Button */}
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-2xl font-semibold">
-              {capitalizeFirstLetter(currentTournament.title)}
-            </h3>
+            {!isEditingTitle ? (
+              <div
+                className="group flex items-center gap-2 border border-transparent hover:border-gray-500 transition-all duration-200 rounded-md p-2 cursor-pointer"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <h3 className="text-2xl font-semibold">{tournamentTitle}</h3>
+                <MdEdit className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-600" />
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={tournamentTitle}
+                onChange={handleTitleChange}
+                onBlur={saveTitle}
+                onKeyDown={(e) => e.key === "Enter" && saveTitle()}
+                className="text-2xl font-semibold border border-gray-500 rounded-md p-2 focus:outline-none focus:border-gray-700 transition-all duration-200"
+              />
+            )}
             <Button
               className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
               onClick={addRound}
@@ -166,8 +295,20 @@ function CurrentTournament() {
               + Add Round
             </Button>
           </div>
-
-          {/* Scores Table */}
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+          >
+            {isEditing ? "Save Changes" : "Edit Tournament"}
+          </Button>
+          {isEditing && (
+            <Button
+              onClick={handleAddNewPlayer}
+              className="ml-1 bg-green-500 text-white px-4 py-2 rounded-lg"
+            >
+              Add Player
+            </Button>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-300 shadow-lg bg-white">
               <thead className="bg-gray-100">
@@ -175,19 +316,57 @@ function CurrentTournament() {
                   <th className="border border-gray-300 p-3 text-center">
                     Round
                   </th>
-                  {players.map((player: Person) => (
+                  {players.map((player) => (
                     <th
                       key={player.id}
                       className="border border-gray-300 p-3 text-center"
                     >
-                      {capitalizeFirstLetter(player.name)}
+                      {isEditing ? (
+                        <div className="flex items-center space-x-2 relative">
+                          <Input
+                            type="text"
+                            value={player.name}
+                            onChange={(e) =>
+                              handlePlayerNameChange(player.id, e.target.value)
+                            }
+                            placeholder="Enter Name"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                          />
+                          <button
+                            onClick={() => handleRemovePlayer(player.id)}
+                            className="remove-button absolute"
+                          >
+                            <FaMinus />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="font-medium font-bold">
+                          {player.nickname || player.name}
+                        </p>
+                      )}
                     </th>
                   ))}
+                  {addingPlayer && (
+                    <th className="border border-gray-300 p-3 text-center">
+                      <Input
+                        type="text"
+                        value={tempPlayerName}
+                        onChange={(e) => setTempPlayerName(e.target.value)}
+                        placeholder="Enter Player Name"
+                        className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                        onBlur={handleSaveNewPlayer}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleSaveNewPlayer()
+                        }
+                      />
+                    </th>
+                  )}
                   <th className="border border-gray-300 p-3 text-center">
                     Actions
                   </th>
                 </tr>
               </thead>
+
               <tbody>
                 {rounds.map((round, roundIndex) => (
                   <tr key={roundIndex} className="hover:bg-gray-100">
@@ -199,26 +378,54 @@ function CurrentTournament() {
                         key={player.id}
                         className="border border-gray-300 p-3 text-center"
                       >
-                        <Input
-                          type="number"
-                          id={`round-${roundIndex}-player-${player.id}`}
-                          name={`round[${roundIndex}][${player.id}]`}
-                          value={
-                            round.scores[player.id] !== undefined
-                              ? String(round.scores[player.id])
-                              : ""
-                          }
-                          onChange={(e) =>
-                            handleScoreChange(
-                              roundIndex,
-                              player.id,
-                              e.target.value
-                            )
-                          }
-                          className="w-full p-2 border border-gray-300 rounded-lg text-center"
-                        />
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={
+                              round.scores[player.id] !== undefined
+                                ? String(round.scores[player.id])
+                                : ""
+                            }
+                            onChange={(e) =>
+                              handleScoreChange(
+                                roundIndex,
+                                player.id,
+                                e.target.value
+                              )
+                            }
+                            disabled
+                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                          />
+                        ) : (
+                          <Input
+                            type="number"
+                            value={
+                              round.scores[player.id] !== undefined
+                                ? String(round.scores[player.id])
+                                : ""
+                            }
+                            onChange={(e) =>
+                              handleScoreChange(
+                                roundIndex,
+                                player.id,
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                          />
+                        )}
                       </td>
                     ))}
+                    {addingPlayer && (
+                      <td className="border border-gray-300 p-3 text-center">
+                        <Input
+                          type="number"
+                          value=""
+                          disabled
+                          className="w-full p-2 border border-gray-300 rounded-lg text-center bg-gray-200"
+                        />
+                      </td>
+                    )}
                     <td className="border border-gray-300 p-3 text-center">
                       <Button
                         onClick={() => removeRound(roundIndex)}
@@ -229,7 +436,6 @@ function CurrentTournament() {
                     </td>
                   </tr>
                 ))}
-                {/* Totals Row */}
                 <tr className="bg-gray-100 font-semibold">
                   <td className="border border-gray-300 p-3 text-center">
                     Totals:
@@ -252,7 +458,6 @@ function CurrentTournament() {
             </table>
           </div>
 
-          {/* Complete Tournament Button */}
           <div className="flex justify-center mt-6">
             <Button
               onClick={onCompleteTournament}

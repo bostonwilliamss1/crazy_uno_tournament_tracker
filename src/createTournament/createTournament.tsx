@@ -39,18 +39,22 @@ function CreateTournament() {
     if (players.length > 0) {
       titleRef.current?.focus();
     }
-    setNextPlayerId(
-      existingPlayers.length > 0
-        ? Math.max(...existingPlayers.map((player) => player.id)) + 1
-        : 0
-    );
-    setNextTournamentId(
-      tournaments.length > 0
-        ? Math.max(
-            ...tournaments.map((tournament) => tournament.tournamentId)
-          ) + 1
-        : 0
-    );
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/tournaments")
+      .then((response) => {
+        setTournaments(response.data);
+        const existingIds = response.data.map(
+          (tournament: Tournament) => tournament.tournamentId
+        );
+        const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+        setNextTournamentId(maxId + 1);
+      })
+      .catch((error) => {
+        console.error("Error fetching tournaments:", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -58,6 +62,10 @@ function CreateTournament() {
       .get("http://localhost:5001/api/players")
       .then((response) => {
         setExistingPlayers(response.data);
+        const existingIds = response.data.map((player: Person) => player.id);
+        const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+
+        setNextPlayerId(maxId + 1);
       })
       .catch((error) => {
         console.error("Error fetching players:", error);
@@ -112,7 +120,7 @@ function CreateTournament() {
     saveTournamentsToLocalStorage(newTournament);
     setTournaments([...tournaments, newTournament]);
 
-    setPlayers([{ id: 1, name: "", rounds: {} }]);
+    setPlayers([{ id: 1, name: "", rounds: {}, nickname: "" }]);
     setTitle("");
     launchConfetti();
     navigate("/");
@@ -132,7 +140,7 @@ function CreateTournament() {
   const createPlayer = (playerName: string) => {
     setPlayers((players) => [
       ...players,
-      { id: nextPlayerId, name: playerName, rounds: {} },
+      { id: nextPlayerId, name: playerName, rounds: {}, nickname: "" },
     ]);
     setPlayerName("");
   };
@@ -227,7 +235,7 @@ function CreateTournament() {
               <Label className="text-lg font-semibold text-gray-700">
                 Player List
               </Label>
-              <div className="mt-2 max-h-48 overflow-y-auto">
+              <div className="mt-2 max-h-48 overflow-y-scroll scrollbar scrollbar-thumb-gray-500 scrollbar-track-gray-300 scrollbar-thin pr-1">
                 {players.length === 0 ? (
                   <p className="text-sm text-gray-500">No players added yet.</p>
                 ) : (
@@ -251,8 +259,6 @@ function CreateTournament() {
             </div>
           </form>
         </CardContent>
-
-        {/* Submit Button */}
         <CardFooter className="flex justify-center">
           <Button
             type="button"

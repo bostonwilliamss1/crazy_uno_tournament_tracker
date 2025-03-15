@@ -77,7 +77,7 @@ const WinsChart: React.FC<Props> = ({ scores = [] }) => {
       });
   }, []);
 
-  return <Doughnut data={data} options={options} />;
+  return <Doughnut className="w-10" data={data} options={options} />;
 };
 
 export default WinsChart;
