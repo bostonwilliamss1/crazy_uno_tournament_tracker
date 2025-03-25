@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tournament } from "@/models/Tournament";
 
 function PlayerStats() {
@@ -41,19 +41,17 @@ function PlayerStats() {
   }, [tournaments]);
 
   return (
-    <div className="chart-container w-[25%] m-3 w-[25%]">
-      <Card className="chart-container">
-        <CardHeader>
-          <CardTitle>Players Highest Scores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {Array.from(maxScores.entries()).map(([playerName, maxScore]) => (
-            <div className="text-gray-700 text-sm my-1" key={playerName}>
-              {playerName}: <span className="font-bold">{maxScore}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+    <div className="chart-container">
+      <CardHeader>
+        <CardTitle>Players Highest Scores</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {Array.from(maxScores.entries()).map(([playerName, maxScore]) => (
+          <div className="text-gray-700 text-sm my-1" key={playerName}>
+            {playerName}: <span className="font-bold">{maxScore}</span>
+          </div>
+        ))}
+      </CardContent>
     </div>
   );
 }

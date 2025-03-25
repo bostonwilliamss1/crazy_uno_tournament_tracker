@@ -112,7 +112,7 @@ const MyDocument: React.FC<{ tournament: Tournament }> = ({ tournament }) => {
       <PDFDownloadLink
         document={<MyPDFDocument tournament={tournament} />}
         fileName={`${tournament.title.replace(/\s+/g, "_")}.pdf`}
-        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition mt-4"
+        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition mb-4"
       >
         {({ loading }) => (loading ? "Loading document..." : "Download PDF")}
       </PDFDownloadLink>

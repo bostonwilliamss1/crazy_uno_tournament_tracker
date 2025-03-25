@@ -19,21 +19,36 @@ interface Props {
 
 const WinsChart: React.FC<Props> = ({ scores = [] }) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  if (!scores) return;
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:5001/api/tournaments")
+      .then((response) => {
+        setTournaments(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching tournament titles:", error);
+      });
+  }, []);
+
+  if (!scores || !tournaments.length) {
+    return null;
+  }
+
   const wins: Map<string, number> = new Map();
-  tournaments.forEach((_, i) => {
-    const tournamentInfo = scores.filter(
-      (score) => score.tournament_id === i + 1
+
+  tournaments.forEach((tournament) => {
+    const winnerId = Number(tournament.winner);
+
+    const winnerInfo = scores.find(
+      (score) =>
+        score.player_id === winnerId &&
+        score.tournament_id === tournament.tournamentId
     );
-    if (tournamentInfo.length > 0) {
-      const lowestScorePlayer = tournamentInfo.reduce(
-        (minPlayer, currentPlayer) =>
-          currentPlayer.total_score < minPlayer.total_score
-            ? currentPlayer
-            : minPlayer
-      );
-      const currentWins = wins.get(lowestScorePlayer.player_name) || 0;
-      wins.set(lowestScorePlayer.player_name, currentWins + 1);
+
+    if (winnerInfo) {
+      const currentWins = wins.get(winnerInfo.player_name) || 0;
+      wins.set(winnerInfo.player_name, currentWins + 1);
     }
   });
 
@@ -66,18 +81,11 @@ const WinsChart: React.FC<Props> = ({ scores = [] }) => {
     },
   };
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5001/api/tournaments")
-      .then((response) => {
-        setTournaments(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching tournament titles:", error);
-      });
-  }, []);
-
-  return <Doughnut className="w-10" data={data} options={options} />;
+  return (
+    <div style={{ width: "300px", height: "200px" }}>
+      <Doughnut className="w-10" data={data} options={options} />
+    </div>
+  );
 };
 
 export default WinsChart;

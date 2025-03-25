@@ -106,7 +106,7 @@ function PreviousTours() {
       </div>
 
       {/* Selected Tournament Display */}
-      <h3 className="text-2xl font-semibold tracking-tight my-6">
+      <h3 className="text-2xl font-semibold tracking-tight my-3">
         {selectedTournament
           ? `Tournament: ${selectedTournament.title}`
           : "No Tournament Selected"}
@@ -115,11 +115,10 @@ function PreviousTours() {
       {selectedTournament && (
         <div className="w-full flex flex-col items-center">
           {selectedTournament && (
-            <div className="mt-6">
+            <div className="">
               <MyDocument tournament={selectedTournament} />
             </div>
           )}
-          {/* Tournament Table */}
           <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
             <h3 className="text-xl font-semibold mb-4">Tournament Scores</h3>
             <div className="overflow-x-auto">

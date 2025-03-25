@@ -8,12 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
 import WinsChart from "@/charts/winsChart";
 import { useMemo } from "react";
 import { Person } from "@/models/Person";
 import PlayerStats from "@/playerStats/PlayerStats";
+import ZeroStats from "@/zeroStats/zeroStats";
 
 type Option = {
   title: string;
@@ -50,9 +51,7 @@ function Stats() {
     ...filteredTotals.sort((a, b) => a.total_score - b.total_score),
   ];
   const location = useLocation();
-  const [aggregatedZerosMap, setAggregatedZerosMap] = useState<
-    Map<number, number>
-  >(new Map());
+
   const [players, setPlayers] = useState<Person[]>([]);
   const [tournamentAverages, setTournamentAverages] = useState<
     Map<number, number>
@@ -153,35 +152,6 @@ function Stats() {
       setFilteredTotals(filtered);
     }
   }, [selectedTournament, totals]);
-
-  useEffect(() => {
-    if (!tournamentsInformation) return;
-
-    const aggregatedZeros = new Map<number, number>();
-
-    tournamentsInformation.forEach((tournament) => {
-      const rounds = [
-        ...new Set(
-          Object.values(tournament.people || {})
-            .flatMap((player) => Object.keys(player.rounds || {}))
-            .map(Number)
-        ),
-      ].sort((a, b) => a - b);
-
-      Object.values(tournament.people || {}).forEach((player) => {
-        let count = 0;
-        rounds.forEach((round) => {
-          if (player.rounds?.[round] === 0) {
-            count++;
-          }
-        });
-        const current = aggregatedZeros.get(player.id) || 0;
-        aggregatedZeros.set(player.id, current + count);
-      });
-    });
-
-    setAggregatedZerosMap(aggregatedZeros);
-  }, [tournamentsInformation]);
 
   useEffect(() => {
     if (!tournamentsInformation) return;
@@ -292,26 +262,8 @@ function Stats() {
           </CardContent>
         </div>
         <div className="bg-white shadow-lg rounded-lg p-4">
-          <CardHeader>
-            <CardTitle>All Tournaments Zero Count</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Array.from(aggregatedZerosMap.entries()).map(
-              ([playerId, totalZeros]) => {
-                const playerName =
-                  tournamentsInformation?.find((t) => t.people[playerId])
-                    ?.people[playerId].name || "Unknown";
-                return (
-                  <p className="text-gray-700 text-sm my-1" key={playerId}>
-                    {playerName}:{" "}
-                    <span className="font-semibold">{totalZeros}</span>
-                  </p>
-                );
-              }
-            )}
-          </CardContent>
+          <ZeroStats />
         </div>
-
         {/* Average Scores */}
         <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
@@ -327,8 +279,6 @@ function Stats() {
           </CardContent>
         </div>
       </div>
-
-      {/* Tournament Selector */}
       <h3 className="text-2xl font-semibold tracking-tight my-2 ml-3">
         {selectedTournament} Tournament Statistics:
       </h3>
@@ -350,10 +300,7 @@ function Stats() {
           </SelectContent>
         </Select>
       </div>
-
-      {/* Tournament Statistics Grid */}
       <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6 mt-6">
-        {/* Final Rankings */}
         <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>Final Rankings</CardTitle>
@@ -376,8 +323,6 @@ function Stats() {
             )}
           </CardContent>
         </div>
-
-        {/* Average Scores per Tournament */}
         <div className="bg-white shadow-lg rounded-lg p-4">
           <CardHeader>
             <CardTitle>Average Scores</CardTitle>
@@ -398,7 +343,7 @@ function Stats() {
                   return (
                     <p className="text-gray-700 text-sm my-1" key={playerId}>
                       {player.name}:
-                      <span className="font-semibold">{avgScore} pts</span>
+                      <span className="ml-1 font-semibold">{avgScore} pts</span>
                     </p>
                   );
                 }
@@ -432,28 +377,26 @@ function Stats() {
       <h3 className="text-2xl font-semibold tracking-tight my-2 ml-3">
         Player Statistics
       </h3>
-      <div className="bg-white shadow-lg rounded-lg p-4 mt-3">
-        <div className="flex gap-4">
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6 my-3">
+        <div className="bg-white shadow-lg rounded-lg p-4">
           <PlayerStats />
-          <div className="chart-container w-[25%] m-3 w-[25%]">
-            <Card className="chart-container">
-              <CardHeader>
-                <CardTitle>Longest Consecutive Win Streak</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Array.from(zeroStreaks.entries()).map(([playerId, streak]) => {
-                  const playerName =
-                    players.find((p) => p.id === playerId)?.name || "Unknown";
-                  return (
-                    <p className="text-gray-700 text-sm my-1" key={playerId}>
-                      {playerName}:{" "}
-                      <span className="font-semibold">{streak} rounds</span>
-                    </p>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
+        </div>
+        <div className="bg-white shadow-lg rounded-lg p-4">
+          <CardHeader>
+            <CardTitle>Longest Consecutive Win Streak</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.from(zeroStreaks.entries()).map(([playerId, streak]) => {
+              const playerName =
+                players.find((p) => p.id === playerId)?.name || "Unknown";
+              return (
+                <p className="text-gray-700 text-sm my-1" key={playerId}>
+                  {playerName}:
+                  <span className="ml-1 font-semibold">{streak} rounds</span>
+                </p>
+              );
+            })}
+          </CardContent>
         </div>
       </div>
     </div>

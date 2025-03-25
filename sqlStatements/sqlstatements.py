@@ -5,7 +5,7 @@ players = []
 
 # Load Excel file (replace 'uno_data.xlsx' with your file path)
 data_file = "sqlStatements/MasterUnoSpreadSheet.xlsx"  # Update this with your dataset file path
-sheet_name = "Beach 2022"  # Update this with the actual sheet name
+sheet_name = "Corona Uno 1"  # Update this with the actual sheet name
 
 # Read Excel data
 excel_data = pd.read_excel(data_file, sheet_name=sheet_name, header=None)
@@ -27,10 +27,8 @@ for player in players:
 insert_scores = "INSERT INTO scores (player_id, round_number, score, tournament_id) VALUES \n"
 score_statements = []
 
-# Define tournament_id (hardcoded or dynamically determined)
-tournament_id = 5  # Replace with the actual tournament ID or logic to determine it
+tournament_id = 5
 
-# Process rows, correctly handling the first row of data and valid rows
 round_number = 1
 for index, row in excel_data.iterrows():
     if index == 0:  # Skip the first row with player names

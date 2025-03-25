@@ -7,6 +7,14 @@ import axios from "axios";
 import { MdEdit } from "react-icons/md";
 import { FaMinus } from "react-icons/fa";
 import "./currentTournament.css";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import AlternateHomePage from "@/alternateHomePage/alternateHomePage";
 
 function CurrentTournament() {
   const [rounds, setRounds] = useState<
@@ -22,6 +30,7 @@ function CurrentTournament() {
   );
   const [tempPlayerName, setTempPlayerName] = useState("");
   const [addingPlayer, setAddingPlayer] = useState(false);
+  const [sortOrder, setSortOrder] = useState("original");
 
   function capitalizeFirstLetter(val: string) {
     return String(val).charAt(0).toUpperCase() + String(val).slice(1);
@@ -99,6 +108,19 @@ function CurrentTournament() {
     setRounds([...rounds, newRound]);
   };
 
+  const sortedPlayers = [...players].sort((a, b) => {
+    if (sortOrder === "firstToLast") {
+      return (
+        rounds.reduce((total, round) => total + (round.scores[a.id] || 0), 0) -
+        rounds.reduce((total, round) => total + (round.scores[b.id] || 0), 0)
+      );
+    }
+    if (sortOrder === "byId") {
+      return a.id - b.id;
+    }
+    return 0;
+  });
+
   const handlePlayerNameChange = (playerId: number, newName: string) => {
     const updatedPlayers = players.map((player) =>
       player.id === playerId ? { ...player, name: newName } : player
@@ -136,11 +158,11 @@ function CurrentTournament() {
   };
 
   const handleAddNewPlayer = () => {
-    setAddingPlayer(true); // Show the input field for new player
+    setAddingPlayer(true);
   };
 
   const handleSaveNewPlayer = () => {
-    if (!tempPlayerName.trim()) return; // Prevent empty names
+    if (!tempPlayerName.trim()) return;
 
     const trimmedName = tempPlayerName.trim().toLowerCase();
     const isDuplicate = players.some(
@@ -149,12 +171,11 @@ function CurrentTournament() {
 
     if (isDuplicate) {
       alert("This player is already added to the tournament.");
-      setTempPlayerName(""); // Reset input
-      setAddingPlayer(false); // Hide input field
+      setTempPlayerName("");
+      setAddingPlayer(false);
       return;
     }
 
-    // Check if player exists in existingPlayers list
     const existingPlayer = existingPlayers.find(
       (p) => p.name.trim().toLowerCase() === trimmedName
     );
@@ -181,8 +202,8 @@ function CurrentTournament() {
     setPlayers(updatedPlayers);
     localStorage.setItem("players", JSON.stringify(updatedPlayers));
 
-    setTempPlayerName(""); // Reset input
-    setAddingPlayer(false); // Hide input field
+    setTempPlayerName("");
+    setAddingPlayer(false);
   };
 
   const handleRemovePlayer = (id: number) => {
@@ -224,34 +245,67 @@ function CurrentTournament() {
       return;
     }
 
-    const formattedTournament = {
-      tournamentId: currentTournament?.tournamentId || 0,
-      title: currentTournament?.title || "Untitled Tournament",
-      year: currentTournament?.year || new Date().getFullYear(),
-      completed: true,
+    const tournamentId = currentTournament.tournamentId;
 
-      people: players.reduce<{
-        [key: number]: {
-          name: string;
-          id: number;
-          rounds: { [round: number]: number };
-        };
-      }>((acc, player) => {
-        acc[player.id] = {
-          name: player.name,
-          id: player.id,
-          rounds: rounds.reduce<{ [round: number]: number }>(
-            (roundAcc, round, roundIndex) => {
-              roundAcc[roundIndex + 1] = round.scores[player.id] ?? 0;
-              return roundAcc;
-            },
-            {}
-          ),
-        };
-        return acc;
-      }, {}),
+    const totalScores = players.map((player) => {
+      const total = rounds.reduce(
+        (sum, round) => sum + (round.scores[player.id] || 0),
+        0
+      );
+      return {
+        player_id: player.id,
+        player_name: player.name,
+        tournament_id: tournamentId,
+        total_score: total,
+      };
+    });
+
+    const winnerEntry = totalScores.reduce((min, curr) =>
+      curr.total_score < min.total_score ? curr : min
+    );
+
+    const tournament = {
+      tournament_id: tournamentId,
+      title: currentTournament.title,
+      year: currentTournament.year,
+      winner_id: winnerEntry.player_id,
+      round_count: rounds.length,
     };
-    console.log("formated tournament", formattedTournament);
+
+    const tournamentPlayers = players.map((player) => ({
+      tournament_id: tournamentId,
+      player_id: player.id,
+    }));
+
+    const scores = players.flatMap((player) =>
+      rounds.map((round, index) => ({
+        tournament_id: tournamentId,
+        player_id: player.id,
+        round_number: index + 1,
+        score: round.scores[player.id] ?? 0,
+      }))
+    );
+
+    const payload = {
+      tournament,
+      players,
+      tournamentPlayers,
+      scores,
+    };
+
+    console.log("Submitting tournament data:", payload);
+
+    axios
+      .post("http://localhost:5001/api/tournaments/full", payload)
+      .then(() => {
+        alert(`Tournament saved! 🎉 Winner: ${winnerEntry.player_name}`);
+        localStorage.removeItem("tournaments");
+        localStorage.removeItem("rounds");
+      })
+      .catch((err) => {
+        console.error("Save failed:", err);
+        alert("Tournament save failed.");
+      });
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,8 +320,7 @@ function CurrentTournament() {
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
       <h2 className="text-3xl font-semibold tracking-tight mb-6">Home Page</h2>
-
-      {currentTournament && (
+      {currentTournament ? (
         <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
           <div className="flex justify-between items-center mb-4">
             {!isEditingTitle ? (
@@ -289,18 +342,30 @@ function CurrentTournament() {
               />
             )}
             <Button
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition "
               onClick={addRound}
             >
               + Add Round
             </Button>
           </div>
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
-          >
-            {isEditing ? "Save Changes" : "Edit Tournament"}
-          </Button>
+          <div className="flex flex-row">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition mr-2"
+            >
+              {isEditing ? "Save Changes" : "Edit Tournament"}
+            </Button>
+            <Select onValueChange={setSortOrder}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Sort Players" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="original">Original Order</SelectItem>
+                <SelectItem value="firstToLast">First to Last</SelectItem>
+                <SelectItem value="byId">By ID</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {isEditing && (
             <Button
               onClick={handleAddNewPlayer}
@@ -316,7 +381,7 @@ function CurrentTournament() {
                   <th className="border border-gray-300 p-3 text-center">
                     Round
                   </th>
-                  {players.map((player) => (
+                  {sortedPlayers.map((player: Person) => (
                     <th
                       key={player.id}
                       className="border border-gray-300 p-3 text-center"
@@ -373,7 +438,7 @@ function CurrentTournament() {
                     <td className="border border-gray-300 p-3 text-center font-semibold">
                       {roundIndex + 1}
                     </td>
-                    {players.map((player) => (
+                    {sortedPlayers.map((player: Person) => (
                       <td
                         key={player.id}
                         className="border border-gray-300 p-3 text-center"
@@ -440,7 +505,7 @@ function CurrentTournament() {
                   <td className="border border-gray-300 p-3 text-center">
                     Totals:
                   </td>
-                  {players.map((player) => (
+                  {sortedPlayers.map((player) => (
                     <td
                       key={player.id}
                       className="border border-gray-300 p-3 text-center"
@@ -467,6 +532,8 @@ function CurrentTournament() {
             </Button>
           </div>
         </div>
+      ) : (
+        <AlternateHomePage />
       )}
     </div>
   );
