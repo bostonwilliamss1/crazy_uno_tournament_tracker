@@ -51,6 +51,9 @@ function Stats() {
     ...filteredTotals.sort((a, b) => a.total_score - b.total_score),
   ];
   const location = useLocation();
+  const [totalRoundsPlayedMap, setTotalRoundsPlayedMap] = useState<
+    Map<number, number>
+  >(new Map());
 
   const [players, setPlayers] = useState<Person[]>([]);
   const [tournamentAverages, setTournamentAverages] = useState<
@@ -63,6 +66,24 @@ function Stats() {
   useEffect(() => {
     setSelectedTournament("");
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!tournamentsInformation) return;
+
+    const roundsPlayedMap = new Map<number, number>();
+
+    tournamentsInformation.forEach((tournament) => {
+      Object.values(tournament.people || {}).forEach((player) => {
+        const roundsPlayed = Object.values(player.rounds || {}).filter(
+          (score) => score !== undefined
+        ).length;
+        const currentTotal = roundsPlayedMap.get(player.id) || 0;
+        roundsPlayedMap.set(player.id, currentTotal + roundsPlayed);
+      });
+    });
+
+    setTotalRoundsPlayedMap(roundsPlayedMap);
+  }, [tournamentsInformation]);
 
   const nthNumber = (number: number) => {
     if (number > 3 && number < 21) return "th";
@@ -396,6 +417,26 @@ function Stats() {
                 </p>
               );
             })}
+          </CardContent>
+        </div>
+        {/* Total Rounds Played */}
+        <div className="bg-white shadow-lg rounded-lg p-4">
+          <CardHeader>
+            <CardTitle>Total Rounds Played</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.from(totalRoundsPlayedMap.entries()).map(
+              ([playerId, rounds]) => {
+                const player = players.find((p) => p.id === playerId);
+                if (!player) return null;
+                return (
+                  <p className="text-gray-700 text-sm my-1" key={playerId}>
+                    {player.name}:{" "}
+                    <span className="font-semibold">{rounds}</span>
+                  </p>
+                );
+              }
+            )}
           </CardContent>
         </div>
       </div>

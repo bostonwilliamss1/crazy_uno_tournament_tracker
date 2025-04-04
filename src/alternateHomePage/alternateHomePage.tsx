@@ -1,8 +1,10 @@
+import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PlayerStats from "@/playerStats/PlayerStats";
 import ZeroStats from "@/zeroStats/zeroStats";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface WinnerData {
   name: string;
@@ -13,11 +15,15 @@ interface WinnerData {
 function AlternateHomePage() {
   const [recentWinner, setRecentWinner] = useState<WinnerData | null>(null);
   const [recentLoser, setRecentLoser] = useState<WinnerData | null>(null);
+  const [tournamentTitle, setTournamentTitle] = useState<string | null>("");
+  const navigate = useNavigate();
+
+  console.log("recentWinner", recentWinner);
+  console.log("recentLoser", recentLoser);
 
   useEffect(() => {
     let latestTournamentId: number | null = null;
     let latestTournamentTitle: string | null = null;
-
     axios
       .get("http://localhost:5001/api/tournaments")
       .then((response) => {
@@ -28,7 +34,7 @@ function AlternateHomePage() {
         }
 
         const latestTournament = response.data[0];
-        latestTournamentId = latestTournament.tournament_id;
+        latestTournamentId = latestTournament.tournamentId;
         latestTournamentTitle = latestTournament.title;
 
         return axios.get("http://localhost:5001/api/scores/totals");
@@ -51,7 +57,6 @@ function AlternateHomePage() {
         );
 
         if (latestTournamentScores.length === 0) {
-          console.warn("No players found in the latest tournament.");
           setRecentWinner(null);
           setRecentLoser(null);
           return;
@@ -82,8 +87,29 @@ function AlternateHomePage() {
       });
   }, []);
 
+  useEffect(() => {
+    const savedTournaments = JSON.parse(
+      localStorage.getItem("tournaments") || "[]"
+    );
+    const latest = savedTournaments[savedTournaments.length - 1];
+
+    if (latest && !latest.completed) {
+      setTournamentTitle(latest.title);
+    } else {
+      setTournamentTitle(null);
+    }
+  }, []);
+
   return (
     <div className="flex flex-col bg-gray-100 min-h-screen p-6 w-full">
+      {tournamentTitle && (
+        <Button
+          className="my-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg min-w-fit max-w-[200px]"
+          onClick={() => navigate("/")}
+        >
+          Go Back Current Tournament
+        </Button>
+      )}
       {/* Stats & Rules Section - Organized Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         {/* Player Statistics */}

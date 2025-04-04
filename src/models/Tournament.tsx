@@ -5,7 +5,7 @@ export interface Tournament {
   title: string;
   year: number;
   completed: boolean;
-  winner: number;
+  winner: number | null;
   people: Person[];
   round_count: number;
 }

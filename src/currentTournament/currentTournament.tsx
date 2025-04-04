@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import AlternateHomePage from "@/alternateHomePage/alternateHomePage";
+import { useNavigate } from "react-router-dom";
 
 function CurrentTournament() {
   const [rounds, setRounds] = useState<
@@ -31,6 +32,7 @@ function CurrentTournament() {
   const [tempPlayerName, setTempPlayerName] = useState("");
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [sortOrder, setSortOrder] = useState("original");
+  const navigate = useNavigate();
 
   function capitalizeFirstLetter(val: string) {
     return String(val).charAt(0).toUpperCase() + String(val).slice(1);
@@ -240,10 +242,7 @@ function CurrentTournament() {
   };
 
   const onCompleteTournament = () => {
-    if (!currentTournament) {
-      alert("No active tournament found.");
-      return;
-    }
+    if (!currentTournament) return;
 
     const tournamentId = currentTournament.tournamentId;
 
@@ -263,6 +262,10 @@ function CurrentTournament() {
     const winnerEntry = totalScores.reduce((min, curr) =>
       curr.total_score < min.total_score ? curr : min
     );
+
+    const topPlayers = [...totalScores]
+      .sort((a, b) => a.total_score - b.total_score)
+      .slice(0, 3);
 
     const tournament = {
       tournament_id: tournamentId,
@@ -293,18 +296,19 @@ function CurrentTournament() {
       scores,
     };
 
-    console.log("Submitting tournament data:", payload);
-
     axios
       .post("http://localhost:5001/api/tournaments/full", payload)
-      .then(() => {
-        alert(`Tournament saved! 🎉 Winner: ${winnerEntry.player_name}`);
+      .then((response) => {
+        console.log(response.data.message);
+
         localStorage.removeItem("tournaments");
         localStorage.removeItem("rounds");
+
+        navigate("/winnersPodium", { state: { topPlayers } });
       })
-      .catch((err) => {
-        console.error("Save failed:", err);
-        alert("Tournament save failed.");
+      .catch((error) => {
+        console.error("Error saving tournament:", error);
+        alert("Failed to save tournament");
       });
   };
 
@@ -321,217 +325,230 @@ function CurrentTournament() {
     <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
       <h2 className="text-3xl font-semibold tracking-tight mb-6">Home Page</h2>
       {currentTournament ? (
-        <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
-          <div className="flex justify-between items-center mb-4">
-            {!isEditingTitle ? (
-              <div
-                className="group flex items-center gap-2 border border-transparent hover:border-gray-500 transition-all duration-200 rounded-md p-2 cursor-pointer"
-                onClick={() => setIsEditingTitle(true)}
+        <>
+          <div className="bg-white shadow-lg rounded-lg p-6 w-[85%] max-w-5xl">
+            <div className="flex justify-between items-center mb-4">
+              {!isEditingTitle ? (
+                <div
+                  className="group flex items-center gap-2 border border-transparent hover:border-gray-500 transition-all duration-200 rounded-md p-2 cursor-pointer"
+                  onClick={() => setIsEditingTitle(true)}
+                >
+                  <h3 className="text-2xl font-semibold">{tournamentTitle}</h3>
+                  <MdEdit className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-600" />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={tournamentTitle}
+                  onChange={handleTitleChange}
+                  onBlur={saveTitle}
+                  onKeyDown={(e) => e.key === "Enter" && saveTitle()}
+                  className="text-2xl font-semibold border border-gray-500 rounded-md p-2 focus:outline-none focus:border-gray-700 transition-all duration-200"
+                />
+              )}
+              <Button
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition "
+                onClick={addRound}
               >
-                <h3 className="text-2xl font-semibold">{tournamentTitle}</h3>
-                <MdEdit className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-600" />
-              </div>
-            ) : (
-              <input
-                type="text"
-                value={tournamentTitle}
-                onChange={handleTitleChange}
-                onBlur={saveTitle}
-                onKeyDown={(e) => e.key === "Enter" && saveTitle()}
-                className="text-2xl font-semibold border border-gray-500 rounded-md p-2 focus:outline-none focus:border-gray-700 transition-all duration-200"
-              />
+                + Add Round
+              </Button>
+            </div>
+            <div className="flex flex-row">
+              <Button
+                onClick={() => setIsEditing(!isEditing)}
+                className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition mr-2"
+              >
+                {isEditing ? "Save Changes" : "Edit Tournament"}
+              </Button>
+              <Select onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Sort Players" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="original">Original Order</SelectItem>
+                  <SelectItem value="firstToLast">First to Last</SelectItem>
+                  <SelectItem value="byId">By ID</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {isEditing && (
+              <Button
+                onClick={handleAddNewPlayer}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg mb-3"
+              >
+                Add Player
+              </Button>
             )}
-            <Button
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition "
-              onClick={addRound}
-            >
-              + Add Round
-            </Button>
-          </div>
-          <div className="flex flex-row">
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition mr-2"
-            >
-              {isEditing ? "Save Changes" : "Edit Tournament"}
-            </Button>
-            <Select onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Sort Players" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="original">Original Order</SelectItem>
-                <SelectItem value="firstToLast">First to Last</SelectItem>
-                <SelectItem value="byId">By ID</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {isEditing && (
-            <Button
-              onClick={handleAddNewPlayer}
-              className="ml-1 bg-green-500 text-white px-4 py-2 rounded-lg"
-            >
-              Add Player
-            </Button>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300 shadow-lg bg-white">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border border-gray-300 p-3 text-center">
-                    Round
-                  </th>
-                  {sortedPlayers.map((player: Person) => (
-                    <th
-                      key={player.id}
-                      className="border border-gray-300 p-3 text-center"
-                    >
-                      {isEditing ? (
-                        <div className="flex items-center space-x-2 relative">
-                          <Input
-                            type="text"
-                            value={player.name}
-                            onChange={(e) =>
-                              handlePlayerNameChange(player.id, e.target.value)
-                            }
-                            placeholder="Enter Name"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
-                          />
-                          <button
-                            onClick={() => handleRemovePlayer(player.id)}
-                            className="remove-button absolute"
-                          >
-                            <FaMinus />
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="font-medium font-bold">
-                          {player.nickname || player.name}
-                        </p>
-                      )}
-                    </th>
-                  ))}
-                  {addingPlayer && (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 shadow-lg bg-white">
+                <thead className="bg-gray-100">
+                  <tr>
                     <th className="border border-gray-300 p-3 text-center">
-                      <Input
-                        type="text"
-                        value={tempPlayerName}
-                        onChange={(e) => setTempPlayerName(e.target.value)}
-                        placeholder="Enter Player Name"
-                        className="w-full p-2 border border-gray-300 rounded-lg text-center"
-                        onBlur={handleSaveNewPlayer}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && handleSaveNewPlayer()
-                        }
-                      />
+                      Round
                     </th>
-                  )}
-                  <th className="border border-gray-300 p-3 text-center">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {rounds.map((round, roundIndex) => (
-                  <tr key={roundIndex} className="hover:bg-gray-100">
-                    <td className="border border-gray-300 p-3 text-center font-semibold">
-                      {roundIndex + 1}
-                    </td>
                     {sortedPlayers.map((player: Person) => (
-                      <td
+                      <th
                         key={player.id}
                         className="border border-gray-300 p-3 text-center"
                       >
                         {isEditing ? (
-                          <Input
-                            type="number"
-                            value={
-                              round.scores[player.id] !== undefined
-                                ? String(round.scores[player.id])
-                                : ""
-                            }
-                            onChange={(e) =>
-                              handleScoreChange(
-                                roundIndex,
-                                player.id,
-                                e.target.value
-                              )
-                            }
-                            disabled
-                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
-                          />
+                          <div className="flex items-center space-x-2 relative">
+                            <Input
+                              type="text"
+                              value={player.name}
+                              onChange={(e) =>
+                                handlePlayerNameChange(
+                                  player.id,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Enter Name"
+                              className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                            />
+                            <button
+                              onClick={() => handleRemovePlayer(player.id)}
+                              className="remove-button absolute"
+                            >
+                              <FaMinus />
+                            </button>
+                          </div>
                         ) : (
+                          <p className="font-medium font-bold">
+                            {player.nickname || player.name}
+                          </p>
+                        )}
+                      </th>
+                    ))}
+                    {addingPlayer && (
+                      <th className="border border-gray-300 p-3 text-center">
+                        <Input
+                          type="text"
+                          value={tempPlayerName}
+                          onChange={(e) => setTempPlayerName(e.target.value)}
+                          placeholder="Enter Player Name"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                          onBlur={handleSaveNewPlayer}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && handleSaveNewPlayer()
+                          }
+                        />
+                      </th>
+                    )}
+                    <th className="border border-gray-300 p-3 text-center">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rounds.map((round, roundIndex) => (
+                    <tr key={roundIndex} className="hover:bg-gray-100">
+                      <td className="border border-gray-300 p-3 text-center font-semibold">
+                        {roundIndex + 1}
+                      </td>
+                      {sortedPlayers.map((player: Person) => (
+                        <td
+                          key={player.id}
+                          className="border border-gray-300 p-3 text-center"
+                        >
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={
+                                round.scores[player.id] !== undefined
+                                  ? String(round.scores[player.id])
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                handleScoreChange(
+                                  roundIndex,
+                                  player.id,
+                                  e.target.value
+                                )
+                              }
+                              disabled
+                              className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                            />
+                          ) : (
+                            <Input
+                              type="number"
+                              value={
+                                round.scores[player.id] !== undefined
+                                  ? String(round.scores[player.id])
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                handleScoreChange(
+                                  roundIndex,
+                                  player.id,
+                                  e.target.value
+                                )
+                              }
+                              className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                            />
+                          )}
+                        </td>
+                      ))}
+                      {addingPlayer && (
+                        <td className="border border-gray-300 p-3 text-center">
                           <Input
                             type="number"
-                            value={
-                              round.scores[player.id] !== undefined
-                                ? String(round.scores[player.id])
-                                : ""
-                            }
-                            onChange={(e) =>
-                              handleScoreChange(
-                                roundIndex,
-                                player.id,
-                                e.target.value
-                              )
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-lg text-center"
+                            value=""
+                            disabled
+                            className="w-full p-2 border border-gray-300 rounded-lg text-center bg-gray-200"
                           />
+                        </td>
+                      )}
+                      <td className="border border-gray-300 p-3 text-center">
+                        <Button
+                          onClick={() => removeRound(roundIndex)}
+                          className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition"
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-100 font-semibold">
+                    <td className="border border-gray-300 p-3 text-center">
+                      Totals:
+                    </td>
+                    {sortedPlayers.map((player) => (
+                      <td
+                        key={player.id}
+                        className="border border-gray-300 p-3 text-center"
+                      >
+                        {rounds.reduce(
+                          (total, round) =>
+                            total + (round.scores[player.id] || 0),
+                          0
                         )}
                       </td>
                     ))}
-                    {addingPlayer && (
-                      <td className="border border-gray-300 p-3 text-center">
-                        <Input
-                          type="number"
-                          value=""
-                          disabled
-                          className="w-full p-2 border border-gray-300 rounded-lg text-center bg-gray-200"
-                        />
-                      </td>
-                    )}
-                    <td className="border border-gray-300 p-3 text-center">
-                      <Button
-                        onClick={() => removeRound(roundIndex)}
-                        className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition"
-                      >
-                        Remove
-                      </Button>
-                    </td>
+                    <td className="border border-gray-300 p-3 text-center"></td>
                   </tr>
-                ))}
-                <tr className="bg-gray-100 font-semibold">
-                  <td className="border border-gray-300 p-3 text-center">
-                    Totals:
-                  </td>
-                  {sortedPlayers.map((player) => (
-                    <td
-                      key={player.id}
-                      className="border border-gray-300 p-3 text-center"
-                    >
-                      {rounds.reduce(
-                        (total, round) =>
-                          total + (round.scores[player.id] || 0),
-                        0
-                      )}
-                    </td>
-                  ))}
-                  <td className="border border-gray-300 p-3 text-center"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
 
-          <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={onCompleteTournament}
+                className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition"
+              >
+                Complete Tournament
+              </Button>
+            </div>
+          </div>
+          <div className="w-[85%] max-w-5xl mt-3 flex justify-start">
             <Button
-              onClick={onCompleteTournament}
-              className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
+              onClick={() => navigate("/alternateHomePage")}
             >
-              Complete Tournament
+              Go to Home
             </Button>
           </div>
-        </div>
+        </>
       ) : (
         <AlternateHomePage />
       )}
