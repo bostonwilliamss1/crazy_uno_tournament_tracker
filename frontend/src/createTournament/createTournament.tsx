@@ -9,7 +9,6 @@ import { launchConfetti } from "@/utils/confetti";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
-  Card,
   CardContent,
   CardFooter,
   CardHeader,
@@ -153,7 +152,7 @@ function CreateTournament() {
       </h2>
 
       {/* Tournament Form Card */}
-      <Card className="w-full max-w-lg bg-white shadow-lg rounded-lg p-6">
+      <div className="bg-white shadow-lg rounded-lg p-4 w-[35%]">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
             Create Tournament
@@ -268,7 +267,7 @@ function CreateTournament() {
             Start Tournament
           </Button>
         </CardFooter>
-      </Card>
+      </div>
     </div>
   );
 }

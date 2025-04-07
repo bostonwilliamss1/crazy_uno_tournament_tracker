@@ -269,7 +269,7 @@ function CurrentTournament() {
 
     const tournament = {
       tournament_id: tournamentId,
-      title: currentTournament.title,
+      title: tournamentTitle,
       year: currentTournament.year,
       winner_id: winnerEntry.player_id,
       round_count: rounds.length,
@@ -303,6 +303,8 @@ function CurrentTournament() {
 
         localStorage.removeItem("tournaments");
         localStorage.removeItem("rounds");
+        localStorage.removeItem("tournamentTitle");
+        localStorage.removeItem("players");
 
         navigate("/winnersPodium", { state: { topPlayers } });
       })

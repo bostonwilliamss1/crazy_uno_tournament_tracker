@@ -33,7 +33,11 @@ function AlternateHomePage() {
           return;
         }
 
-        const latestTournament = response.data[0];
+        const sortedTournaments = response.data.sort(
+          (a: any, b: any) => b.tournamentId - a.tournamentId
+        );
+        const latestTournament = sortedTournaments[0];
+
         latestTournamentId = latestTournament.tournamentId;
         latestTournamentTitle = latestTournament.title;
 
